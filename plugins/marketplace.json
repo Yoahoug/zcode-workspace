@@ -1,0 +1,19 @@
+{
+  "name": "dev-workspace-default-websearch",
+  "plugins": [
+    {
+      "name": "zcode-websearch",
+      "source": "./zcode-websearch",
+      "version": "0.2.0",
+      "description": "Web search for ZCode through the Tavily API: a two-step tool pair where web_search returns source links with short snippets and web_fetch reads exactly one URL in full, plus guidance on when to search and how to cite results.",
+      "displayName": "Web Search (Tavily)",
+      "displayName_i18n": {
+        "zh-CN": "网络搜索（Tavily）"
+      },
+      "description_i18n": {
+        "zh-CN": "通过 Tavily API 为 ZCode 提供联网搜索能力：web_search 只返回来源链接与短摘要，web_fetch 每次读一个 URL 的正文；所有长度上限由部署配置而非模型参数决定，以控制上下文开销。"
+      },
+      "category": "utilities"
+    }
+  ]
+}

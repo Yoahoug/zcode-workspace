@@ -1,0 +1,87 @@
+{
+  "name": "zcode-websearch",
+  "version": "0.2.0",
+  "description": "Web search for ZCode through the Tavily API: an MCP server exposing a two-step tool pair — web_search discovers source URLs with short snippets, web_fetch reads exactly one URL in full — plus guidance on when to search and how to cite results.",
+  "author": {
+    "name": "Local"
+  },
+  "license": "MIT",
+  "skills": "skills",
+  "mcpServers": {
+    "websearch": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/index.mjs"],
+      "env": {
+        "TAVILY_API_KEY": "${user_config.tavily_api_key}",
+        "TAVILY_BASE_URL": "${user_config.base_url}",
+        "WEBSEARCH_TIMEOUT_MS": "${user_config.timeout_ms}",
+        "WEBSEARCH_SEARCH_MAX_RESULTS": "${user_config.search_max_results}",
+        "WEBSEARCH_SEARCH_MAX_QUERIES": "${user_config.search_max_queries}",
+        "WEBSEARCH_SEARCH_SNIPPET_CHARS": "${user_config.search_snippet_chars}",
+        "WEBSEARCH_SEARCH_ANSWER_CHARS": "${user_config.search_answer_chars}",
+        "WEBSEARCH_FETCH_MAX_OUTPUT_CHARS": "${user_config.fetch_max_output_chars}",
+        "WEBSEARCH_MAX_OUTPUT_CHARS": "${user_config.max_output_chars}",
+        "WEBSEARCH_SEARCH_DEPTH": "${user_config.search_depth}",
+        "WEBSEARCH_FETCH_DEPTH": "${user_config.fetch_depth}"
+      },
+      "timeoutMs": 60000
+    }
+  },
+  "userConfig": {
+    "tavily_api_key": {
+      "type": "string",
+      "default": "",
+      "description": "Tavily API key (starts with tvly-). Required for both tools; get one at https://app.tavily.com. Without it the server starts but every call reports a missing-key error."
+    },
+    "base_url": {
+      "type": "string",
+      "default": "https://api.tavily.com",
+      "description": "Tavily API base URL. Change only for a proxy or self-hosted Tavily-compatible endpoint."
+    },
+    "timeout_ms": {
+      "type": "string",
+      "default": "30000",
+      "description": "Per-request timeout in milliseconds. Raise it for advanced search on slow networks; the host allows this MCP server up to 60s per call."
+    },
+    "search_max_results": {
+      "type": "string",
+      "default": "8",
+      "description": "Sources returned by one web_search call. This is a deployment limit, not a tool argument: the model cannot raise it, which is what keeps one search from flooding the context window."
+    },
+    "search_max_queries": {
+      "type": "string",
+      "default": "4",
+      "description": "Queries accepted in one web_search call. Related questions batch into a single call whose sources merge and de-duplicate, so one context entry covers several searches."
+    },
+    "search_snippet_chars": {
+      "type": "string",
+      "default": "400",
+      "description": "Characters kept per source snippet in a search result. Snippets are for deciding what to read, not for reading: web_fetch returns the page itself."
+    },
+    "search_answer_chars": {
+      "type": "string",
+      "default": "1200",
+      "description": "Characters kept of Tavily's synthesized answer to the query."
+    },
+    "fetch_max_output_chars": {
+      "type": "string",
+      "default": "24000",
+      "description": "Characters kept from a fetched page. Raising it lets one page fill more of the context window; the truncation notice tells the model to fetch a narrower URL instead."
+    },
+    "max_output_chars": {
+      "type": "string",
+      "default": "26000",
+      "description": "Hard cap on the whole text one call returns, whichever tool ran. Kept well under the host's 50 KB model-side budget so this plugin's truncation notice is the one seen."
+    },
+    "search_depth": {
+      "type": "string",
+      "default": "basic",
+      "description": "Tavily search depth: 'basic' or 'advanced'. Deployment policy rather than a tool argument, so depth cannot be raised by accident per call; 'advanced' costs more and returns longer snippets."
+    },
+    "fetch_depth": {
+      "type": "string",
+      "default": "basic",
+      "description": "Tavily extract depth: 'basic' or 'advanced'. 'advanced' retrieves more content per page, including tables and embedded data."
+    }
+  }
+}

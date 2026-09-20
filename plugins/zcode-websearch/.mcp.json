@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "websearch": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/index.mjs"],
+      "env": {
+        "TAVILY_API_KEY": "${user_config.tavily_api_key}",
+        "TAVILY_BASE_URL": "${user_config.base_url}",
+        "WEBSEARCH_TIMEOUT_MS": "${user_config.timeout_ms}",
+        "WEBSEARCH_SEARCH_MAX_RESULTS": "${user_config.search_max_results}",
+        "WEBSEARCH_SEARCH_MAX_QUERIES": "${user_config.search_max_queries}",
+        "WEBSEARCH_SEARCH_SNIPPET_CHARS": "${user_config.search_snippet_chars}",
+        "WEBSEARCH_SEARCH_ANSWER_CHARS": "${user_config.search_answer_chars}",
+        "WEBSEARCH_FETCH_MAX_OUTPUT_CHARS": "${user_config.fetch_max_output_chars}",
+        "WEBSEARCH_MAX_OUTPUT_CHARS": "${user_config.max_output_chars}",
+        "WEBSEARCH_SEARCH_DEPTH": "${user_config.search_depth}",
+        "WEBSEARCH_FETCH_DEPTH": "${user_config.fetch_depth}"
+      },
+      "timeoutMs": 60000
+    }
+  }
+}
