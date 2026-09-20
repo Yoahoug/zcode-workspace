@@ -1,9 +1,12 @@
 {
-  "name": "dev-workspace-default-websearch",
+  "name": "zcode-workspace",
+  "owner": {
+    "name": "Yoahoug"
+  },
   "plugins": [
     {
       "name": "zcode-websearch",
-      "source": "./zcode-websearch",
+      "source": "./plugins/zcode-websearch",
       "version": "0.2.0",
       "description": "Web search for ZCode through the Tavily API: a two-step tool pair where web_search returns source links with short snippets and web_fetch reads exactly one URL in full, plus guidance on when to search and how to cite results.",
       "displayName": "Web Search (Tavily)",
