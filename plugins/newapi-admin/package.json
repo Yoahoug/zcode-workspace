@@ -1,0 +1,20 @@
+{
+  "name": "newapi-admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CLI and MCP server for administering a New API instance through its management API.",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "bin": { "newapi-admin": "./scripts/newapi-admin.mjs" },
+  "scripts": {
+    "test": "node test/run-checks.mjs && node test/run-mcp-checks.mjs && node test/run-doc-checks.mjs",
+    "test:cli": "node test/run-checks.mjs",
+    "test:mcp": "node test/run-mcp-checks.mjs",
+    "test:docs": "node test/run-doc-checks.mjs",
+    "generate": "node tools/generate-endpoints.mjs",
+    "mock": "node test/mock-server.mjs"
+  },
+  "dependencies": {},
+  "keywords": ["new-api", "newapi", "one-api", "llm-gateway", "mcp", "admin"]
+}

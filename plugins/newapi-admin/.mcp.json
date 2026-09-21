@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "newapi-admin": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/index.mjs"],
+      "env": {
+        "NEWAPI_BASE_URL": "${user_config.base_url}",
+        "NEWAPI_ACCESS_TOKEN": "${user_config.access_token}",
+        "NEWAPI_USER_ID": "${user_config.user_id}",
+        "NEWAPI_TIMEOUT_MS": "${user_config.timeout_ms}"
+      },
+      "timeoutMs": 60000
+    }
+  }
+}

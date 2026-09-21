@@ -17,6 +17,20 @@
         "zh-CN": "通过 Tavily API 为 ZCode 提供联网搜索能力：web_search 只返回来源链接与短摘要，web_fetch 每次读一个 URL 的正文；所有长度上限由部署配置而非模型参数决定，以控制上下文开销。"
       },
       "category": "utilities"
+    },
+    {
+      "name": "newapi-admin",
+      "source": "./plugins/newapi-admin",
+      "version": "0.1.0",
+      "description": "Full-surface administrator tooling for a New API (new-api) instance: channels, model metadata, model pricing and ratios, users, tokens, redemption codes, logs, statistics, groups, vendors and root system options. Ships a zero-dependency CLI plus an MCP server that reaches every management route, with an authoritative field-level reference distilled from the New API router and source.",
+      "displayName": "New API Admin",
+      "displayName_i18n": {
+        "zh-CN": "New API 管理员"
+      },
+      "description_i18n": {
+        "zh-CN": "对 New API（new-api）实例做完整管理员运维：渠道、模型元数据、模型定价与倍率、用户、令牌、兑换码、日志、统计、分组、供应商与 Root 系统选项。附带零依赖 CLI 与 MCP 服务，覆盖全部管理路由，并沉淀了一份从 New API 路由与源码提炼的字段级参考文档。"
+      },
+      "category": "utilities"
     }
   ]
 }

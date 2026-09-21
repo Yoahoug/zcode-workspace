@@ -1,0 +1,43 @@
+{
+  "name": "newapi-admin",
+  "version": "0.1.0",
+  "description": "Full-surface administrator tooling for a New API (new-api) instance: channels, model metadata, model pricing and ratios, users, tokens, redemption codes, logs, statistics, groups, vendors and root system options. Ships a zero-dependency CLI plus an MCP server that reaches every management route, with an authoritative field-level reference distilled from the New API router and source.",
+  "author": { "name": "Yoahoug" },
+  "license": "MIT",
+  "skills": "skills",
+  "mcpServers": {
+    "newapi-admin": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/index.mjs"],
+      "env": {
+        "NEWAPI_BASE_URL": "${user_config.base_url}",
+        "NEWAPI_ACCESS_TOKEN": "${user_config.access_token}",
+        "NEWAPI_USER_ID": "${user_config.user_id}",
+        "NEWAPI_TIMEOUT_MS": "${user_config.timeout_ms}"
+      },
+      "timeoutMs": 60000
+    }
+  },
+  "userConfig": {
+    "base_url": {
+      "type": "string",
+      "default": "",
+      "description": "New API instance URL, for example https://api.example.com. No trailing slash needed. Also settable via the NEWAPI_BASE_URL environment variable."
+    },
+    "access_token": {
+      "type": "string",
+      "default": "",
+      "description": "Admin or root access token. Create it in the New API panel under Personal settings -> Account -> Security -> system access token. Root is required for pricing, system options and system tasks; a plain admin also lacks channel:sensitive_write, so it cannot add or delete channels. Also settable via NEWAPI_ACCESS_TOKEN."
+    },
+    "user_id": {
+      "type": "string",
+      "default": "",
+      "description": "Optional. Sent as the deprecated New-Api-User header. Current builds ignore it; set it only for an older instance or an authenticating proxy that still expects it."
+    },
+    "timeout_ms": {
+      "type": "string",
+      "default": "30000",
+      "description": "Per-request timeout in milliseconds. Raise it for slow instances or when testing channels."
+    }
+  }
+}
