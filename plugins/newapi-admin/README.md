@@ -8,7 +8,7 @@ New API 官方文档里有一个「开发中」的 `newapi-admin` skill 计划�
 
 | 组件 | 说明 |
 | --- | --- |
-| **MCP 服务** | stdio JSON-RPC，16 个工具。`newapi_request` 能到达全部路由，另有渠道/模型/定价/用户/日志的类型化工具 |
+| **MCP 服务** | stdio JSON-RPC，15 个工具（1 个覆盖全部路由的通用工具 + 类型化工具）。`newapi_request` 能到达全部路由，另有渠道/模型/定价/用户/日志的类型化工具 |
 | **CLI** | `scripts/newapi-admin.mjs`，零依赖，纯 Node 内置模块。同样的能力，可独立使用、可进 CI |
 | **Skill** | `skills/newapi-admin/SKILL.md` + 8 篇参考文档，字段级细节来自 New API 源码 |
 | **契约测试** | 174 项端到端检查跑在按官方契约实现的 mock 服务上，另有 161 项文档一致性检查 |

@@ -23,7 +23,7 @@ plugins/
   newapi-admin/
     .zcode-plugin/plugin.json          插件清单：名称、版本、MCP 服务器、可配置项
     .mcp.json                          MCP 服务器声明（与上者内容一致）
-    server/index.mjs                   MCP stdio 服务，16 个工具
+    server/index.mjs                   MCP stdio 服务，15 个工具
     scripts/newapi-admin.mjs           零依赖 CLI，与 MCP 服务共用同一套请求核心
     lib/core.mjs                       共享核心：配置解析、请求发送、响应信封判定
     lib/routes.mjs                     295 条管理路由的索引，取自 new-api 后端路由源码

@@ -197,6 +197,30 @@ try {
       check(`reference topic has a file: ${match[1]}`, available.has(match[1]), "no matching .md in references/");
     }
   }
+  // -------------------------------------------------------------------------
+  // 6. The MCP tool surface documented in the README must match the server, both in
+  //    the tool names listed and in the count quoted in prose.
+  // -------------------------------------------------------------------------
+  const toolsBlock = serverSource.match(/const TOOLS = \[([\s\S]*?)\n\];/);
+  check("server declares its tools", Boolean(toolsBlock), "TOOLS not found");
+  if (toolsBlock) {
+    const declared = [...toolsBlock[1].matchAll(/\n\s*name: "([a-z_]+)"/g)].map((m) => m[1]);
+    const readme = readFileSync(join(pluginRoot, "README.md"), "utf8");
+    const table = readme.slice(readme.indexOf("## MCP 工具"));
+    const documented = new Set([...table.matchAll(/`(newapi_[a-z_]+)`/g)].map((m) => m[1]));
+    for (const name of declared) {
+      check(`README documents tool: ${name}`, documented.has(name), "missing from the MCP tools table");
+    }
+    for (const name of documented) {
+      check(`documented tool exists: ${name}`, declared.includes(name), "in the README but not in TOOLS");
+    }
+    const quoted = readme.match(/MCP 服务\*\* \| stdio JSON-RPC，(\d+) 个工具/);
+    check(
+      `README tool count matches the server: ${quoted ? quoted[1] : "?"} vs ${declared.length}`,
+      Boolean(quoted) && Number(quoted[1]) === declared.length,
+      `the server exposes ${declared.length} tools`,
+    );
+  }
 } finally {
   await mock.close();
 }
