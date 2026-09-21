@@ -7,7 +7,10 @@
 //   * failures are HTTP 200 with {success:false,message}, not HTTP error codes
 //   * channel reads never return `key` (it serializes as "")
 //   * PUT /api/channel/ rejects a body containing `status`
-//   * POST /api/channel/{id}/key needs X-Security-Proof and root role
+//   * POST /api/channel/{id}/key needs root role, a session credential and a single-use
+//     X-Security-Proof minted by POST /api/verify; a PAT fails the identity check first
+//   * sessions and access tokens are different credentials: `test-session-jwt` has a
+//     session identity, `test-token` (the PAT) deliberately does not
 //   * GET /api/channel/update_balance/{id} puts `balance` at the top level, not in `data`
 //   * GET /api/log/search is a deprecated stub that always fails
 //   * PATCH /api/option/model_pricing is optimistic-locked on expected_version
@@ -19,9 +22,21 @@ import { createServer } from "node:http";
 
 const QUOTA_PER_UNIT = 500000;
 
+// Security-verification contract, read off service/security_verification.go and
+// middleware/secure_verification.go in the new-api source:
+//   * proofs are minted by POST /api/verify, are single-use, and expire after one minute;
+//   * a proof is bound to an operation scope plus its exact context (for a channel key read,
+//     that context is {"channel_id": N});
+//   * minting and consuming both require a *session* identity. A PAT deliberately has none,
+//     so a PAT-authenticated request can never do either (the upstream comment says so).
+const SECURITY_PROOF_TTL_MS = 60_000;
+const TWO_FA_CODE = "123456";
+const SESSION_TOKEN = "test-session-jwt";
+
 export function startMockServer({ port = 0, token = "test-token", role = 100 } = {}) {
   const state = {
     requests: [],
+    proofs: [],
     channels: [
       { id: 1, name: "openai-main", type: 1, status: 1, models: "gpt-4o,gpt-4o-mini", group: "default", priority: 10, weight: 1, base_url: "https://api.openai.com", balance: 12.5, response_time: 320, tag: "prod", test_model: "gpt-4o-mini" },
       { id: 2, name: "anthropic", type: 14, status: 2, models: "claude-sonnet-4", group: "default,vip", priority: 5, weight: 1, base_url: "https://api.anthropic.com", balance: 3.25, response_time: 480, tag: "prod", test_model: "claude-sonnet-4" },
@@ -91,6 +106,8 @@ export function startMockServer({ port = 0, token = "test-token", role = 100 } =
       resolve({
         port: server.address().port,
         baseUrl: `http://127.0.0.1:${server.address().port}`,
+        sessionToken: SESSION_TOKEN,
+        twoFaCode: TWO_FA_CODE,
         state,
         close: () => new Promise((done) => server.close(done)),
       });
@@ -132,6 +149,36 @@ function route(record, state, { token, role }) {
   if (!authorized(headers, token)) {
     if (path === "/api/channel/" && method === "GET") return fail("无权进行此操作，未登录且未提供 access token");
     return fail("无权进行此操作，未登录且未提供 access token");
+  }
+
+  // --- security verification ----------------------------------------------
+  // Mints a single-use proof bound to a scope and its exact context. Session-bound by
+  // design: a PAT cannot mint one at all, which is why the route answers 401 for it.
+  if (path === "/api/verify" && method === "POST") {
+    if (!hasSessionIdentity(headers)) {
+      return { status: 401, body: { success: false, message: "当前认证方式不支持安全验证" } };
+    }
+    if (role < 100) return fail("You do not have permission to perform this action.", { code: "SECURITY_ACTION_FORBIDDEN" });
+    if (body?.scope !== "channel.key.read") return fail("The action details are invalid.", { code: "SECURITY_PROOF_SCOPE_MISMATCH" });
+    // The real server unmarshals this into a Go int, so a string is rejected outright —
+    // being strict here is what catches a CLI that sends "2" instead of 2.
+    const channelId = body?.context?.channel_id;
+    if (typeof channelId !== "number" || !Number.isInteger(channelId) || channelId <= 0) {
+      return fail("The action details are invalid.", { code: "SECURITY_PROOF_CONTEXT_MISMATCH" });
+    }
+    // channel.key.read offers 2FA or passkey only; there is no password or session method.
+    if (body?.method !== "2fa") return fail("This verification method is currently unavailable.", { code: "SECURITY_METHOD_UNAVAILABLE" });
+    if (String(body?.code ?? "") !== TWO_FA_CODE) return fail("验证码错误");
+    const proof = {
+      token: `proof-${state.proofs.length + 1}`,
+      channelId,
+      scope: "channel.key.read",
+      method: "2fa",
+      expiresAt: Date.now() + SECURITY_PROOF_TTL_MS,
+      consumed: false,
+    };
+    state.proofs.push(proof);
+    return ok({ proof_token: proof.token, expires_at: Math.floor(proof.expiresAt / 1000), method: "2fa", scope: "channel.key.read" });
   }
 
   // --- channels -----------------------------------------------------------
@@ -241,8 +288,20 @@ function route(record, state, { token, role }) {
   }
   const keyPath = path.match(/^\/api\/channel\/(\d+)\/key$/);
   if (keyPath && method === "POST") {
-    if (role < 100) return fail("无权进行此操作，权限不足");
-    if (!headers["x-security-proof"]) return fail("SECURITY_PROOF_REQUIRED", { code: "SECURITY_PROOF_REQUIRED" });
+    const channelId = Number(keyPath[1]);
+    if (role < 100) return fail("You do not have permission to perform this action.", { code: "SECURITY_ACTION_FORBIDDEN" });
+    // The identity check runs before the proof check, so a PAT fails here rather than being
+    // told it is missing a proof it could never obtain.
+    if (!hasSessionIdentity(headers)) return fail("安全验证状态无效", { code: "SECURITY_PROOF_INVALID" });
+    const raw = String(headers["x-security-proof"] ?? "").trim();
+    if (!raw) return fail("需要安全验证", { code: "SECURITY_PROOF_REQUIRED" });
+    const proof = state.proofs.find((candidate) => candidate.token === raw);
+    if (!proof) return fail("安全验证状态无效", { code: "SECURITY_PROOF_INVALID" });
+    if (proof.consumed) return fail("This verification has already been used. Please verify again.", { code: "SECURITY_PROOF_CONSUMED" });
+    if (proof.expiresAt < Date.now()) return fail("安全验证已过期", { code: "SECURITY_PROOF_EXPIRED" });
+    if (proof.scope !== "channel.key.read") return fail("安全验证范围不匹配", { code: "SECURITY_PROOF_SCOPE_MISMATCH" });
+    if (proof.channelId !== channelId) return fail("Verification does not match this action's details. Please verify again.", { code: "SECURITY_PROOF_CONTEXT_MISMATCH" });
+    proof.consumed = true;
     return ok({ key: "sk-mock-secret-key" });
   }
   if (path === "/api/channel/batch/tag" && method === "POST") {
@@ -718,8 +777,18 @@ function route(record, state, { token, role }) {
 }
 
 function authorized(headers, token) {
+  const value = bearer(headers);
+  return value === token || value === SESSION_TOKEN;
+}
+
+/** A session credential carries a session identity; a PAT deliberately carries none. */
+function hasSessionIdentity(headers) {
+  return bearer(headers) === SESSION_TOKEN;
+}
+
+function bearer(headers) {
   const header = headers.authorization ?? "";
-  return header === `Bearer ${token}`;
+  return header.startsWith("Bearer ") ? header.slice(7) : "";
 }
 
 /** Channel reads never include the key; the server omits the column and it serializes as "". */

@@ -193,9 +193,83 @@ try {
   }
   {
     const refused = await run(["channels", "key", "1"], env);
-    check("channels key explains the security-proof requirement", refused.code === 2 && /security proof/i.test(refused.stderr), refused.stderr.trim());
-    const withProof = await run(["channels", "key", "1", "--security-proof", "proof-1"], { ...env });
-    check("channels key sends X-Security-Proof when provided", withProof.stdout.includes("sk-mock-secret-key"), withProof.stdout.trim());
+    check(
+      "channels key explains the security-proof requirement",
+      refused.code === 2 && /security proof/i.test(refused.stderr) && /session/i.test(refused.stderr),
+      refused.stderr.trim(),
+    );
+  }
+  {
+    // An access token carries no session identity, so the server refuses it before it ever
+    // looks at a proof. The CLI must say so instead of blaming the missing header.
+    const withProof = await run(["channels", "key", "1", "--security-proof", "proof-1"], env);
+    check(
+      "an access token cannot read a channel key even with a proof",
+      withProof.code === 1 && /会话身份/.test(withProof.stderr) && /安全验证状态无效/.test(withProof.stderr),
+      withProof.stderr.trim(),
+    );
+  }
+  {
+    const patMint = await run(["channels", "key", "1", "--verify-code", "123456"], env);
+    check(
+      "minting a proof with an access token names the session requirement",
+      patMint.code === 1 && /不支持安全验证/.test(patMint.stderr) && /--session-token/.test(patMint.stderr),
+      patMint.stderr.trim(),
+    );
+  }
+  {
+    const sessionEnv = { ...env, NEWAPI_SESSION_TOKEN: mock.sessionToken };
+    const minted = await run(["channels", "key", "2", "--verify-code", mock.twoFaCode], sessionEnv);
+    check("a session credential plus a 2FA code reads the key", minted.stdout.includes("sk-mock-secret-key"), minted.stdout.trim());
+    const verify = last(mock.state.requests, (r) => r.path === "/api/verify");
+    check(
+      "the proof is minted for this scope and this channel",
+      verify?.body?.method === "2fa" &&
+        verify?.body?.scope === "channel.key.read" &&
+        verify?.body?.context?.channel_id === 2 &&
+        verify?.body?.code === mock.twoFaCode,
+      JSON.stringify(verify?.body),
+    );
+    const read = last(mock.state.requests, (r) => r.path === "/api/channel/2/key");
+    check(
+      "the minted proof is sent as X-Security-Proof",
+      read?.headers?.["x-security-proof"] === mock.state.proofs.at(-1)?.token,
+      read?.headers?.["x-security-proof"] ?? "(none)",
+    );
+    check(
+      "the proof is bound to this channel id",
+      mock.state.proofs.at(-1)?.channelId === 2,
+      String(mock.state.proofs.at(-1)?.channelId),
+    );
+  }
+  {
+    const sessionEnv = { ...env, NEWAPI_SESSION_TOKEN: mock.sessionToken };
+    const wrongCode = await run(["channels", "key", "2", "--verify-code", "000000"], sessionEnv);
+    check(
+      "a wrong 2FA code fails the mint, not the read",
+      wrongCode.code === 1 && /铸安全验证凭证失败/.test(wrongCode.stderr),
+      wrongCode.stderr.trim(),
+    );
+  }
+  {
+    // Proofs are single-use, so the one the successful read above consumed is now spent.
+    const spent = mock.state.proofs.at(-1).token;
+    const reused = await run(["channels", "key", "2", "--security-proof", spent], {
+      ...env,
+      NEWAPI_SESSION_TOKEN: mock.sessionToken,
+    });
+    check("a consumed proof is reported as single-use", reused.code === 1 && /一次性/.test(reused.stderr), reused.stderr.trim());
+  }
+  {
+    // --dry-run must not mint: minting is itself a request against the instance.
+    const before = mock.state.requests.filter((r) => r.path === "/api/verify").length;
+    const dry = await run(["channels", "key", "2", "--verify-code", mock.twoFaCode, "--dry-run"], env);
+    const after = mock.state.requests.filter((r) => r.path === "/api/verify").length;
+    check(
+      "--dry-run does not mint a proof",
+      dry.stdout.includes("would be minted via POST /api/verify") && before === after,
+      dry.stdout.trim(),
+    );
   }
 
   process.stdout.write("\nmodel metadata\n");

@@ -47,27 +47,11 @@ import {
 } from "../lib/core.mjs";
 import { findRoutes, matchRoute, routeStats } from "../lib/routes.mjs";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 
 // ---------------------------------------------------------------------------
 // Global flag handling
 // ---------------------------------------------------------------------------
-
-const GLOBAL_FLAGS = new Set([
-  "base-url",
-  "token",
-  "user-id",
-  "timeout",
-  "config",
-  "security-proof",
-  "json",
-  "dry-run",
-  "yes",
-  "all",
-  "help",
-  "version",
-  "query",
-]);
 
 function extractConfig(argv) {
   const { positionals, flags } = parseArgs(argv);
@@ -75,6 +59,7 @@ function extractConfig(argv) {
     flags: {
       baseUrl: flags["base-url"],
       token: flags.token,
+      sessionToken: flags["session-token"],
       userId: flags["user-id"],
       timeout: flags.timeout,
       config: flags.config,
@@ -204,7 +189,81 @@ async function call(ctx, options) {
         `\nAdd --yes to confirm, or --dry-run to inspect the request first.`,
     );
   }
-  return request(ctx.config, described);
+  const config = options.securityProof ? { ...ctx.config, securityProof: options.securityProof } : ctx.config;
+  return request(config, described);
+}
+
+/**
+ * Security-verification codes, read off middleware/secure_verification.go in the new-api
+ * source. Every one of them arrives as HTTP 200 with success:false, so the envelope's
+ * `code` field is the only thing that distinguishes them.
+ */
+const SECURITY_PROOF_HELP = {
+  SECURITY_PROOF_REQUIRED: "请求缺少 X-Security-Proof 头。",
+  SECURITY_PROOF_INVALID:
+    "服务端说「安全验证状态无效」。这一般不是凭证过期，而是当前凭证没有会话身份：访问令牌（PAT）按设计就没有，只有浏览器会话凭证才有。",
+  SECURITY_PROOF_EXPIRED: "安全验证凭证的有效期只有 60 秒，重新验证一次即可。",
+  SECURITY_PROOF_CONSUMED: "这是一次性凭证，用过即废。每读一个渠道都要重新验证一次。",
+  SECURITY_PROOF_SCOPE_MISMATCH: "凭证绑定的操作范围不对：读渠道密钥必须是 scope=channel.key.read。",
+  SECURITY_PROOF_CONTEXT_MISMATCH: "凭证绑定了具体的 channel_id，必须是这一个渠道的凭证。",
+  SECURITY_PROOF_METHOD_MISMATCH: "凭证的验证方式与本次要求不一致。",
+  SECURITY_METHOD_UNAVAILABLE: "该账号没有可用的验证方式。读渠道密钥只认 2FA 口令或 passkey，密码和会话都不行。",
+  SECURITY_ACTION_FORBIDDEN: "当前账号不是 Root。读渠道密钥只允许 Root。",
+};
+
+/**
+ * Mint a single-use proof for one operation. Only a session credential can do this: the
+ * upstream handler answers 401 「当前认证方式不支持安全验证」for an access token.
+ */
+async function mintSecurityProof(ctx, { scope, context, code, password }) {
+  const body = pickDefined({
+    method: code ? "2fa" : "password",
+    scope,
+    context,
+    code,
+    password,
+  });
+  const result = await request(ctx.config, { method: "POST", path: "/api/verify", body });
+  const proof = result.data?.proof_token;
+  if (!proof) {
+    throw new ApiError("POST /api/verify returned no proof_token", {
+      status: result.status,
+      body: result.envelope,
+    });
+  }
+  return proof;
+}
+
+/** Re-throw an API error with the remedy for a security-verification failure attached. */
+function explainSecurityError(error) {
+  const code = typeof error?.code === "string" ? error.code : undefined;
+  const help = code ? SECURITY_PROOF_HELP[code] : undefined;
+  if (!help) return error;
+  return new ApiError(`${error.message}\n${help}`, { status: error.status, code: error.code, body: error.body });
+}
+
+/**
+ * POST /api/verify has two failure modes worth translating: it refuses a credential without a
+ * session identity (401, no error code at all), and it rejects a wrong or unavailable factor.
+ */
+function explainProofMintError(error) {
+  const explained = explainSecurityError(error);
+  if (explained !== error) return explained;
+  const message = String(error?.message ?? "");
+  if (/不支持安全验证/.test(message)) {
+    return new ApiError(
+      `${message}\n` +
+        "当前凭证没有会话身份 —— --token / NEWAPI_ACCESS_TOKEN 是访问令牌，按设计不能做安全验证。\n" +
+        "改用 --session-token <浏览器会话凭证>：在面板里打开开发者工具的 Network，任选一个 /api\n" +
+        "请求，复制请求头 Authorization: Bearer 后面那串 JWT 即可。它会随登录会话过期。",
+      { status: error.status, code: error.code, body: error.body },
+    );
+  }
+  return new ApiError(`铸安全验证凭证失败（POST /api/verify）：${message}`, {
+    status: error.status,
+    code: error.code,
+    body: error.body,
+  });
 }
 
 function requireYes(ctx, label) {
@@ -568,15 +627,65 @@ async function cmdChannels(ctx, action, rest) {
       return emit(ctx, result, { summary: `copied channel ${id} -> ${result.data?.id ?? "?"}` });
     }
     case "key": {
-      // Root-only and additionally gated by the X-Security-Proof header.
+      // Hardest route in the whole API to reach. Four conditions, all server-enforced:
+      //   1. root role
+      //   2. a *session* credential — an access token (PAT) has no session identity and is
+      //      refused before the proof is even looked at
+      //   3. a single-use X-Security-Proof minted by POST /api/verify, valid for 60 seconds
+      //   4. that proof bound to scope=channel.key.read and context={"channel_id": <this one>}
+      // Give the proof directly, or let the CLI mint one from a 2FA code.
       const id = requireId(rest[0] ?? flags.id, "channel id");
-      if (!ctx.config.securityProof && !ctx.dryRun) {
+      // The server unmarshals this context into a Go int, so it has to be a JSON number:
+      // a string "2" is rejected as an invalid action detail.
+      const channelId = numeric(id, "channel id");
+      const code = flags["verify-code"];
+      const password = flags["verify-password"];
+      let proof = flags["security-proof"] ?? ctx.config.securityProof;
+      if (ctx.dryRun) {
+        // Stop before minting: --dry-run must not send anything, and minting is a real request.
+        printJson({
+          dryRun: true,
+          url: `${ctx.config.baseUrl}/api/channel/${id}/key`,
+          method: "POST",
+          securityProof: proof
+            ? "<provided>"
+            : code || password
+              ? "would be minted via POST /api/verify"
+              : "<missing>",
+        });
+        return undefined;
+      }
+      if (code || password) {
+        try {
+          proof = await mintSecurityProof(ctx, {
+            scope: "channel.key.read",
+            context: { channel_id: channelId },
+            code,
+            password,
+          });
+        } catch (error) {
+          throw explainProofMintError(error);
+        }
+      }
+      if (!proof && !ctx.dryRun) {
         throw new UsageError(
-          "reading a channel key needs a security proof: POST /api/verify to obtain one, then pass --security-proof or set NEWAPI_SECURITY_PROOF.\n" +
-            "The route is root-only and refuses requests without X-Security-Proof.",
+          "reading a channel key needs a security proof. Three ways to get one, in order of preference:\n" +
+            "  1. read the key in the New API panel (Channels -> the channel -> show key) — it is one click there;\n" +
+            "  2. pass a session credential and a 2FA code, and the CLI mints the proof for you:\n" +
+            "       --session-token <dashboard JWT> --verify-code <6 digits>\n" +
+            "     (copy the JWT from any /api request's Authorization: Bearer header in the browser devtools)\n" +
+            "  3. mint one yourself and pass it: --security-proof <proof_token>\n" +
+            "An access token (NEWAPI_ACCESS_TOKEN) can never satisfy this route: it has no session\n" +
+            "identity, so the server refuses it no matter what proof you attach.",
         );
       }
-      const result = await call(ctx, { method: "POST", path: `/api/channel/${id}/key` });
+      let result;
+      try {
+        result = await call(ctx, { method: "POST", path: `/api/channel/${id}/key`, securityProof: proof });
+      } catch (error) {
+        // Minting above already ran, so this is the read itself failing.
+        throw explainSecurityError(error);
+      }
       return emit(ctx, result, { summary: `channel ${id} key: ${result.data?.key ?? "<not returned>"}` });
     }
     case "tag": {
@@ -2068,7 +2177,8 @@ function usage(topic) {
   channels catalog                                (built-in model catalog)
   channels copy <id> [--suffix s] [--reset-balance false]
   channels fix                                    (rebuild the abilities table)
-  channels key <id>                               (root + X-Security-Proof required)
+  channels key <id>                               (see below — the hardest route in the API)
+  channels key <id> --verify-code 123456          (with --session-token: CLI mints the proof)
   channels tag set --ids 1,2 [--tag name]  |  tag enable|disable --tag name
   channels tag edit --tag name [--new-tag x] [--models a,b] [--groups g] [--priority p] [--weight w]
   channels tag models --tag name
@@ -2076,7 +2186,18 @@ function usage(topic) {
   channels keys enable|disable|delete --channel <id> --index <n>
   channels keys enable-all|disable-all|delete-disabled --channel <id>
   channels upstream detect|detect-all|apply|apply-all [--ids 1,2]
-  channels delete <id> --yes | batch-delete --ids 1,2 --yes | delete-disabled --yes`,
+  channels delete <id> --yes | batch-delete --ids 1,2 --yes | delete-disabled --yes
+
+  Reading a channel key is the most gated route in the whole API. It needs all four:
+    * Root role;
+    * a session credential — an access token has no session identity and is refused before
+      the proof is even examined;
+    * a single-use X-Security-Proof, valid for 60 seconds;
+    * that proof bound to scope=channel.key.read and context={"channel_id": <this channel>}.
+  Only 2FA or passkey can produce it; password and session are not offered for this scope.
+  Easiest is the panel. Otherwise add a 2FA code and the CLI mints the proof for you:
+    channels key 3 --session-token <dashboard JWT> --verify-code 123456
+  A proof you minted yourself also works: --security-proof <proof_token>.`,
     models: `models — model metadata catalogue (separate from pricing)
   models list [--keyword k] [--vendor v] [--status enabled|disabled] [--sync-official yes|no]
               [--square-state visible|unavailable|hidden|partial] [--include-channel-models] [--all]
@@ -2243,8 +2364,10 @@ usage: newapi-admin <group> <subcommand> [args] [flags]
 connection
   --base-url URL     New API base URL        (env NEWAPI_BASE_URL)
   --token TOKEN      access token (PAT/JWT)  (env NEWAPI_ACCESS_TOKEN)
+  --session-token T  dashboard session JWT   (env NEWAPI_SESSION_TOKEN); overrides --token,
+                     and is the only credential that can do security-verified operations
   --user-id ID       value for the deprecated New-Api-User header (env NEWAPI_USER_ID)
-  --security-proof P value for X-Security-Proof (env NEWAPI_SECURITY_PROOF)
+  --security-proof P value for X-Security-Proof (env NEWAPI_SECURITY_PROOF); single-use, 60s
   --timeout MS       per-request timeout, default 30000
   --config PATH      config file, default ~/.config/newapi-admin/config.json
 

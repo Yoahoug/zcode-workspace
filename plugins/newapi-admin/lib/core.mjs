@@ -153,11 +153,16 @@ function readConfigFile(path) {
 /**
  * Resolve connection settings. Precedence, highest first:
  *   1. explicit flags
- *   2. environment (NEWAPI_BASE_URL / NEWAPI_ACCESS_TOKEN / NEWAPI_USER_ID)
+ *   2. environment (NEWAPI_BASE_URL / NEWAPI_ACCESS_TOKEN / NEWAPI_SESSION_TOKEN / NEWAPI_USER_ID)
  *   3. environment-supplied config path (NEWAPI_ADMIN_CONFIG)
  *   4. ~/.config/newapi-admin/config.json
  *
  * The env var names match the official `newapi` skill so one shell profile configures both.
+ *
+ * A *session* credential (the dashboard JWT a browser holds) is accepted anywhere an access
+ * token is, and additionally carries a session identity — which is what security-verified
+ * operations such as reading a channel key require. It is deliberately flag/env-only: it
+ * expires, so keeping it in a config file would only invite stale failures.
  */
 export function resolveConfig({ flags = {}, env = process.env } = {}) {
   const configPath =
@@ -165,14 +170,16 @@ export function resolveConfig({ flags = {}, env = process.env } = {}) {
   const file = readConfigFile(configPath);
 
   const baseUrl = firstNonEmpty(flags.baseUrl, env.NEWAPI_BASE_URL, file.baseUrl, file.base_url);
-  const token = firstNonEmpty(flags.token, env.NEWAPI_ACCESS_TOKEN, file.token, file.accessToken);
+  const accessToken = firstNonEmpty(flags.token, env.NEWAPI_ACCESS_TOKEN, file.token, file.accessToken);
+  const sessionToken = firstNonEmpty(flags.sessionToken, env.NEWAPI_SESSION_TOKEN);
   const userId = firstNonEmpty(flags.userId, env.NEWAPI_USER_ID, file.userId, file.user_id);
   const securityProof = firstNonEmpty(flags.securityProof, env.NEWAPI_SECURITY_PROOF, file.securityProof);
   const timeoutRaw = firstNonEmpty(flags.timeout, env.NEWAPI_TIMEOUT_MS, file.timeoutMs);
 
   return {
     baseUrl: baseUrl ? normalizeBaseUrl(baseUrl) : undefined,
-    token,
+    token: sessionToken ?? accessToken,
+    session: Boolean(sessionToken),
     userId: userId === undefined ? undefined : String(userId),
     securityProof,
     timeoutMs: toPositiveInt(timeoutRaw, 30000),
@@ -183,7 +190,9 @@ export function resolveConfig({ flags = {}, env = process.env } = {}) {
 export function assertConfigured(config) {
   const missing = [];
   if (!config.baseUrl) missing.push("base URL (NEWAPI_BASE_URL or --base-url)");
-  if (!config.token) missing.push("access token (NEWAPI_ACCESS_TOKEN or --token)");
+  if (!config.token) {
+    missing.push("credential (NEWAPI_ACCESS_TOKEN or --token, or a session credential via --session-token)");
+  }
   if (missing.length) {
     throw new UsageError(
       `missing ${missing.join(" and ")}. Set the environment variables, create ${config.configPath}, or pass the flags.`,
@@ -214,6 +223,7 @@ export function redactConfig(config) {
   return {
     baseUrl: config.baseUrl ?? null,
     token: config.token ? maskSecret(config.token) : null,
+    credential: config.session ? "session" : config.token ? "access-token" : null,
     userId: config.userId ?? null,
     securityProof: config.securityProof ? "<set>" : null,
     timeoutMs: config.timeoutMs,

@@ -58,7 +58,7 @@ export NEWAPI_ACCESS_TOKEN=your-access-token
 | 设置 | 说明 |
 | --- | --- |
 | `base_url` | 实例地址，如 `https://api.example.com` |
-| `access_token` | **管理员或 Root 访问令牌**，在面板「个人设置 → 账户管理 → 安全设置 → 系统访问令牌」生成 |
+| `access_token` | **管理员或 Root 访问令牌**，在面板「个人设置 → 账户管理 → 安全设置 → 系统访问令牌」生成（只显示一次） |
 | `user_id` | 可选，对应已废弃的 `New-Api-User` 头 |
 | `timeout_ms` | 单请求超时，默认 30000 |
 
@@ -67,6 +67,8 @@ export NEWAPI_ACCESS_TOKEN=your-access-token
 ```json
 { "baseUrl": "https://api.example.com", "token": "..." }
 ```
+
+> **读渠道密钥是唯一的例外**：那条路由要求 Root + 浏览器**会话凭证** + 一次性的 `X-Security-Proof`，而访问令牌按设计没有会话身份，无论怎么配都会被拒。插件配置里没有这个字段是有意的——会话凭证随登录会话过期，写进配置文件只会制造难以排查的失败。要用就用命令行：`channels key 3 --session-token <会话 JWT> --verify-code <动态码>`，或者直接在面板里看。详见 [references/channels.md](skills/newapi-admin/references/channels.md)。
 
 ### 3. 验证
 
@@ -184,6 +186,8 @@ ModelPrice   = 按次固定价（USD），设置后完全绕过倍率
 | `newapi_logs` | 请求日志 |
 
 类型化工具会做单位换算和字段名解码（`type: 14` → `Anthropic`，`status: 2` → `manually-disabled`），并把 `--json` 才会看到的原始字段整理成可读结构。要原始响应就用 `newapi_request`。
+
+读渠道密钥不在 MCP 里，也不在插件配置里——它需要浏览器会话凭证和一次性安全验证，见上面的说明。要读就用 CLI 或在面板里看。
 
 ## 参考文档
 

@@ -10,8 +10,8 @@
 Authorization: Bearer <token>
 ```
 
-- **Access Token**：在面板「个人设置 → 账户管理 → 安全设置 → 系统访问令牌」生成。长期的 Personal Access Token（PAT）或面板签发的短期 JWT 都可以。
-- **Session**：`POST /api/user/login` 拿到的会话 Cookie。适合浏览器场景，脚本里不推荐。
+- **Access Token**：在面板「个人设置 → 账户管理 → 安全设置 → 系统访问令牌」生成。长期的 Personal Access Token（PAT）。
+- **Session**：`POST /api/user/login` 返回的会话 JWT。它在 `Authorization: Bearer` 里同样能用，而且是**唯一带会话身份**的凭证——PAT 有意不带（源码里 `GetSessionAuthIdentity` 的注释写明「PAT-authenticated requests intentionally fail this check」）。需要安全验证的操作只有它做得成，见 `channels.md` 的「密钥为什么读不到」。
 - **`New-Api-User` 请求头**：**已废弃且不再参与鉴权**。老文档和部分旧版本仍要求它，带上无害（CLI 在设置了 `NEWAPI_USER_ID` 时会带），但不需要依赖它。
 - **`X-Security-Proof` 请求头**：少数高危接口额外要求的二次验证证明，见下。
 
@@ -170,7 +170,9 @@ USD    = quota / QuotaPerUnit
 ## 磁盘上会留下什么
 
 - **访问令牌**：CLI 读 `NEWAPI_ACCESS_TOKEN` 或 `~/.config/newapi-admin/config.json`。配置文件请 `chmod 600`，并确保加入 `.gitignore`。
-- CLI 输出中令牌**永远只显示掩码**（前 4 位 + 10 个 `*` + 后 4 位）。
+- **会话凭证只走参数**：`--session-token` / `NEWAPI_SESSION_TOKEN`，CLI **不读配置文件里的会话凭证**——它会随登录会话过期，存下来只会制造难以排查的失败。
+- **安全验证凭证**：`--security-proof` / `NEWAPI_SECURITY_PROOF`，60 秒一次性，同样不建议落盘。
+- CLI 输出中令牌**永远只显示掩码**（前 4 位 + 10 个 `*` + 后 4 位），`config` 还会标出当前用的是访问令牌还是会话凭证。
 - 渠道密钥、令牌密钥本身由 API 返回（`channel key`、`tokens key`），一旦打印就会进入终端历史和上下文，别写进日志或提交到仓库。
 
 ## 权限不足的典型表现

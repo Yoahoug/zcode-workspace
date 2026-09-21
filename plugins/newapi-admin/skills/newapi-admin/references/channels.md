@@ -15,7 +15,7 @@
 
 **默认情况下普通管理员不能新增或删除渠道**，会返回「权限不足」。这不是 bug。要么用 Root 令牌，要么由 Root 在权限管理里单独授予 `channel:sensitive_write`。
 
-`POST /api/channel/{id}/key` 是另一条路径：它要求 **Root**，并且还要求请求头带 `X-Security-Proof`（通过 `POST /api/verify` 取得的短期二次验证证明）。缺这个头会返回 `SECURITY_PROOF_REQUIRED`。
+`POST /api/channel/{id}/key` 是另一条路径：要求 **Root**、**会话凭证**，以及请求头里的 `X-Security-Proof`（`POST /api/verify` 铸出的 60 秒一次性凭证，绑定本次 `channel_id`）。用访问令牌调用它即使带上凭证也会被拒，详见「密钥为什么读不到」。
 
 ## 渠道对象字段表
 
@@ -123,7 +123,32 @@
 
 `GET /api/channel/`、`/api/channel/{id}`、`/api/channel/search` 返回的 `key` **恒为空字符串**——服务端在查询时 `Omit("key")`。
 
-要拿明文密钥只有一条路：`POST /api/channel/{id}/key`，要求 Root + `X-Security-Proof`，响应 `{"key":"sk-..."}`。这是有意的设计，不是权限没配好。
+要拿明文密钥只有一条路：`POST /api/channel/{id}/key`，响应 `{"key":"sk-..."}`。这是有意的设计，不是权限没配好。
+
+这条路由是全套接口里门槛最高的一条，四个条件缺一不可：
+
+| 条件 | 细节 | 不满足时的错误码 |
+| --- | --- | --- |
+| Root 角色 | 非 Root 直接拒绝 | `SECURITY_ACTION_FORBIDDEN` |
+| **会话凭证** | 浏览器登录会话的 JWT。访问令牌（PAT）**没有会话身份**，服务端在校验凭证之前就先拒掉它 | `SECURITY_PROOF_INVALID` |
+| 一次性凭证 | `POST /api/verify` 铸出，**有效期 60 秒**，用过即废 | `SECURITY_PROOF_REQUIRED` / `SECURITY_PROOF_EXPIRED` / `SECURITY_PROOF_CONSUMED` |
+| 凭证绑定本次操作 | `scope=channel.key.read` 且 `context={"channel_id": N}`，换成别的渠道就失效 | `SECURITY_PROOF_SCOPE_MISMATCH` / `SECURITY_PROOF_CONTEXT_MISMATCH` |
+
+铸凭证（`POST /api/verify`）同样要会话身份，所以用访问令牌调它会得到 HTTP 401 + 「当前认证方式不支持安全验证」——**这不是配置问题，PAT 永远做不到**。
+
+该 scope 的验证方式只有 **2FA 口令或 passkey**（`service/security_verification.go` 的策略表里没有 password / session 选项）。没启用这两者的话，API 侧完全走不通，只能在面板里看。
+
+`context.channel_id` 必须是 **JSON 数字**。服务端把它反序列化成 Go 的 `int`，写成字符串 `"2"` 会被判为「操作细节无效」。
+
+CLI 的用法：
+
+```bash
+# 面板里点一下最快：渠道 → 显示密钥
+newapi-admin channels key 3 --session-token eyJ... --verify-code 123456   # CLI 代铸凭证再读
+newapi-admin channels key 3 --security-proof <proof_token>                # 自己铸好传进来
+```
+
+`--session-token`（或 `NEWAPI_SESSION_TOKEN`）传浏览器会话凭证：在面板打开开发者工具的 Network，任选一个 `/api` 请求，复制请求头 `Authorization: Bearer` 后面那串 JWT。它会随登录会话过期，所以只走命令行/环境变量，**不写进配置文件**。
 
 ## 渠道类型码
 

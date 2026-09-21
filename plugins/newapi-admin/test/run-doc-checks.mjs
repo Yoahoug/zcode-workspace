@@ -9,7 +9,7 @@
 // Run: node test/run-doc-checks.mjs
 
 import { execFile } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -220,6 +220,25 @@ try {
       Boolean(quoted) && Number(quoted[1]) === declared.length,
       `the server exposes ${declared.length} tools`,
     );
+  }
+  // -------------------------------------------------------------------------
+  // 7. The version lives in four places; they must agree before a release.
+  // -------------------------------------------------------------------------
+  {
+    const manifest = JSON.parse(readFileSync(join(pluginRoot, ".zcode-plugin", "plugin.json"), "utf8"));
+    const pkg = JSON.parse(readFileSync(join(pluginRoot, "package.json"), "utf8"));
+    const cli = readFileSync(join(pluginRoot, "scripts", "newapi-admin.mjs"), "utf8").match(/^const VERSION = "([^"]+)"/m);
+    const catalogPath = join(pluginRoot, "..", "..", ".claude-plugin", "marketplace.json");
+    const entry = existsSync(catalogPath)
+      ? JSON.parse(readFileSync(catalogPath, "utf8")).plugins?.find((p) => p.name === manifest.name)
+      : undefined;
+    check("plugin.json declares a version", Boolean(manifest.version), "missing");
+    check(`CLI version matches plugin.json: ${cli?.[1]}`, cli?.[1] === manifest.version, `plugin.json says ${manifest.version}`);
+    check(`package.json version matches plugin.json: ${pkg.version}`, pkg.version === manifest.version, `plugin.json says ${manifest.version}`);
+    if (entry) {
+      check(`marketplace entry version matches plugin.json: ${entry.version}`, entry.version === manifest.version, `plugin.json says ${manifest.version}`);
+      check("marketplace entry description matches plugin.json", entry.description === manifest.description, "the two descriptions differ");
+    }
   }
 } finally {
   await mock.close();

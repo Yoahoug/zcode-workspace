@@ -166,7 +166,7 @@ export const GROUPS = [
       { method: "POST", path: "/api/channel/{id}/codex/usage/reset", auth: "admin", perm: "channel:operate", purpose: "重置 Codex 渠道用量" },
       { method: "POST", path: "/api/channel/upstream_updates/detect", auth: "admin", perm: "channel:operate", purpose: "检测单个渠道的上游模型变化" },
       { method: "POST", path: "/api/channel/upstream_updates/detect_all", auth: "admin", perm: "channel:operate", purpose: "检测全部渠道的上游模型变化" },
-      { method: "POST", path: "/api/channel/{id}/key", auth: "root", purpose: "读取渠道明文密钥；还需 X-Security-Proof 请求头" },
+      { method: "POST", path: "/api/channel/{id}/key", auth: "root", purpose: "读取渠道明文密钥；最严格的路由：需要 Root + 会话凭证（访问令牌没有会话身份，先被拒）+ 60 秒一次性 X-Security-Proof，且凭证绑定本 channel_id" },
       { method: "POST", path: "/api/channel/copy/{id}", auth: "admin", perm: "channel:sensitive_write", purpose: "复制渠道（suffix/reset_balance）" },
       { method: "POST", path: "/api/channel/batch", auth: "admin", perm: "channel:sensitive_write", purpose: "批量删除渠道", destructive: true },
       { method: "DELETE", path: "/api/channel/{id}", auth: "admin", perm: "channel:sensitive_write", purpose: "删除渠道", destructive: true },

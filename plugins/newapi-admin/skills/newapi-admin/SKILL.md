@@ -34,15 +34,16 @@ CLI 和 MCP 是同一个核心（`lib/core.mjs`）的两个外壳，命令与工
 
 连接信息按以下优先级解析（高到低）：
 
-1. 命令行选项 `--base-url` / `--token` / `--user-id`
+1. 命令行选项 `--base-url` / `--token` / `--session-token` / `--user-id`
 2. 环境变量（**与官方 `newapi` skill 同名，一套配置两边通用**）：
    - `NEWAPI_BASE_URL` — 实例地址，如 `https://api.example.com`
-   - `NEWAPI_ACCESS_TOKEN` — **管理员或 Root 的访问令牌**
+   - `NEWAPI_ACCESS_TOKEN` — **管理员或 Root 的访问令牌（PAT）**，日常全部操作用它
+   - `NEWAPI_SESSION_TOKEN` — 可选，浏览器会话 JWT。**只有读渠道密钥时才需要**：这条路由要求会话身份，访问令牌做不到
    - `NEWAPI_USER_ID` — 可选，用于已废弃的 `New-Api-User` 头
-   - `NEWAPI_SECURITY_PROOF` — 可选，高危接口的二次验证证明
-3. 配置文件 `~/.config/newapi-admin/config.json`（`{"baseUrl":"...","token":"..."}`），请 `chmod 600`
+   - `NEWAPI_SECURITY_PROOF` — 可选，60 秒一次性的二次验证凭证
+3. 配置文件 `~/.config/newapi-admin/config.json`（`{"baseUrl":"...","token":"..."}`），请 `chmod 600`。会话凭证与安全验证凭证**只从参数和环境变量读**，不落盘。
 
-令牌在面板「个人设置 → 账户管理 → 安全设置 → 系统访问令牌」生成。
+访问令牌在面板「个人设置 → 账户管理 → 安全设置 → 系统访问令牌」生成（只显示一次）。
 
 **先验证连通性**，再动手：
 
@@ -169,8 +170,18 @@ newapi-admin users search --group vip
 | `未登录且未提供 access token` | 令牌缺失、错误，或请求头格式不对 |
 | `权限不足` | 令牌有效但角色不够（例如管理员令牌调 Root 接口） |
 | 渠道操作报「权限不足」而角色已是管理员 | 缺 `channel:sensitive_write`，默认只有 Root 有 |
-| 读渠道密钥报 `SECURITY_PROOF_REQUIRED` | 该接口需要 Root + `X-Security-Proof` 头 |
+| `安全验证状态无效`（`SECURITY_PROOF_INVALID`） | 用了访问令牌去读渠道密钥。PAT 没有会话身份，这条路由**只认会话凭证**，加什么 `X-Security-Proof` 都没用 |
+| `SECURITY_PROOF_REQUIRED` / 已过期 / 已使用 | 缺凭证、超过 60 秒、或凭证已被用掉（一次性） |
+| `SECURITY_ACTION_FORBIDDEN` | 读渠道密钥要求 Root，当前不是 |
 | `MODEL_PRICING_CONFLICT` / HTTP 409 | 版本号过期（有人刚改过），重新读取版本再改 |
+
+读渠道密钥是唯一需要安全验证的操作，四个前置条件与错误码见 `references/channels.md`。用会话凭证时 CLI 可以代铸凭证：
+
+```bash
+newapi-admin channels key 3 --session-token <会话 JWT> --verify-code <6 位动态码>
+```
+
+会话凭证从浏览器开发者工具的任一 `/api` 请求头里复制（`Authorization: Bearer eyJ...`）。拿不到就用面板看密钥，其余 294 条路由都不需要它。
 
 ## 覆盖不到的地方
 

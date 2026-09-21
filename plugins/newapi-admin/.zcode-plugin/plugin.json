@@ -1,6 +1,6 @@
 {
   "name": "newapi-admin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Full-surface administrator tooling for a New API (new-api) instance: channels, model metadata, model pricing and ratios, users, tokens, redemption codes, logs, statistics, groups, vendors and root system options. Ships a zero-dependency CLI plus an MCP server that reaches every management route, with an authoritative field-level reference distilled from the New API router and source.",
   "author": { "name": "Yoahoug" },
   "license": "MIT",
