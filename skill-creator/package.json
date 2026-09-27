@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@zcode/skill-creator-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Skill authoring skills migrated from the official ZCode bundle (zcode-plugins-official 0.1.0, MIT by Z.ai) into the zcode-workspace marketplace."
+}

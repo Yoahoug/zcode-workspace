@@ -1,11 +1,26 @@
 # zcode-workspace
 
-插件仓库，目前包含两个插件：
+插件仓库，目前包含五个插件：
 
 | 插件 | 说明 |
 |---|---|
 | [`zcode-websearch`](zcode-websearch/README.md) | 通过 Tavily API 给 ZCode 提供联网搜索。`web_search` 只返回来源链接与短摘要（条数、摘要长度由部署配置固定，模型改不了），`web_fetch` 每次读一个 URL 的正文 |
 | [`newapi-admin`](newapi-admin/README.md) | 对 [New API](https://github.com/QuantumNous/new-api)（new-api）实例做完整管理员运维：渠道、模型元数据、模型定价与倍率、用户、令牌、兑换码、日志、统计、分组、供应商、Root 系统选项。零依赖 CLI + MCP 服务覆盖全部 295 条管理路由 |
+| [`zcode-guide`](zcode-guide/README.md) | ZCode 使用与自诊断指南：MCP、命令、技能、Hooks、插件五类扩展资源的配置方法与逐一排障。迁移自官方内置插件 0.3.0 |
+| [`skill-creator`](skill-creator/) | 创建、编辑与迭代本地 ZCode 技能。迁移自官方内置插件 0.1.0 |
+| [`plugin-creator`](plugin-creator/) | 通过本地开发市场开发并验证 ZCode 插件：脚手架、清单规范、安装试用与更新。迁移自官方内置插件 0.1.1 |
+
+## 迁移自官方的插件
+
+`zcode-guide`、`skill-creator`、`plugin-creator` 三个插件迁移自 ZCode 官方内置插件
+（市场 `zcode-plugins-official`，作者 Z.ai，MIT 许可；各目录内 `.zcode-plugin/plugin.json`
+保留原始 `author` 与 `license` 声明）。
+
+- 迁移来源：官方版 seed 出的插件缓存（与 App 包内 `glm/packages` 内容一致），版本对齐官方
+  `0.3.0 / 0.1.0 / 0.1.1`；仅按本市场约定调整了 `package.json` 描述文案。
+- 官方不通过 CDN 分发这三个插件（市场清单与 zip 路径均不存在），无法在线跟随官方更新；
+  官方发新版后需重新拷贝目录并更新版本号。
+- 它们的问题反馈应先对照官方版本行为，再考虑本仓库的适配差异。
 
 ## 目录结构
 
@@ -31,6 +46,11 @@ newapi-admin/
   test/                                3 套检查（121 + 53 + 161 项）与契约 mock 服务
   tools/generate-endpoints.mjs         从 lib/routes.mjs 重新生成 endpoints.md
   README.md                            安装、配置、Root 与管理员权限差异、CLI 用法、安全提示
+zcode-guide/                           迁移自官方内置插件（纯技能包）
+  .zcode-plugin/plugin.json            插件清单（保留原 author/license）
+  skills/                              配置指南 + 五类资源排障技能
+skill-creator/                         迁移自官方内置插件（纯技能包）
+plugin-creator/                        迁移自官方内置插件（技能 + 脚手架脚本）
 ```
 
 ## 本仓库的特别之处
@@ -55,7 +75,8 @@ newapi-admin/
 - **直接粘贴仓库地址**：`https://github.com/Yoahoug/zcode-workspace`（ZCode 会浅克隆仓库并读取根目录的 `.claude-plugin/marketplace.json`）
 - **本地目录**：克隆本仓库后，选择**仓库根目录**
 
-添加后市场名为 `zcode-workspace`，插件有 `zcode-websearch` 和 `newapi-admin` 两个。
+添加后市场名为 `zcode-workspace`，插件有 `zcode-websearch`、`newapi-admin`、`zcode-guide`、
+`skill-creator`、`plugin-creator` 五个。
 配置 API Key / 访问令牌、更新到新版本、以及各种报错的排查见各插件自己的 README：
 
 - [`zcode-websearch/README.md`](zcode-websearch/README.md)

@@ -31,6 +31,48 @@
         "zh-CN": "对 New API（new-api）实例做完整管理员运维：渠道、模型元数据、模型定价与倍率、用户、令牌、兑换码、日志、统计、分组、供应商与 Root 系统选项。附带零依赖 CLI 与 MCP 服务，覆盖全部管理路由，并沉淀了一份从 New API 路由与源码提炼的字段级参考文档。"
       },
       "category": "utilities"
+    },
+    {
+      "name": "zcode-guide",
+      "source": "./zcode-guide",
+      "version": "0.3.0",
+      "description": "ZCode usage and self-diagnosis guide: how to configure MCP servers, slash commands, skills, hooks, and plugins, and how to locate and fix configuration problems for each. Migrated from the official ZCode bundle (zcode-plugins-official, MIT by Z.ai).",
+      "displayName": "ZCode Guide",
+      "displayName_i18n": {
+        "zh-CN": "ZCode 指南"
+      },
+      "description_i18n": {
+        "zh-CN": "ZCode 使用与自诊断指南：如何配置 MCP 服务器、斜杠命令、技能、Hooks 与插件，以及逐一排查各类配置问题。迁移自官方 ZCode 内置插件 zcode-guide 0.3.0（MIT，原作者 Z.ai）。"
+      },
+      "category": "developer-tools"
+    },
+    {
+      "name": "skill-creator",
+      "source": "./skill-creator",
+      "version": "0.1.0",
+      "description": "Create, edit, and iterate local ZCode skills. Migrated from the official ZCode bundle (zcode-plugins-official, MIT by Z.ai).",
+      "displayName": "Skill Creator",
+      "displayName_i18n": {
+        "zh-CN": "技能创建器"
+      },
+      "description_i18n": {
+        "zh-CN": "创建、编辑与迭代本地 ZCode 技能（SKILL.md）。迁移自官方 ZCode 内置插件 skill-creator 0.1.0（MIT，原作者 Z.ai）。"
+      },
+      "category": "developer-tools"
+    },
+    {
+      "name": "plugin-creator",
+      "source": "./plugin-creator",
+      "version": "0.1.1",
+      "description": "Develop and validate ZCode plugins through a local dev marketplace, installation, trials and updates. Migrated from the official ZCode bundle (zcode-plugins-official, MIT by Z.ai).",
+      "displayName": "Plugin Creator",
+      "displayName_i18n": {
+        "zh-CN": "插件创建器"
+      },
+      "description_i18n": {
+        "zh-CN": "通过本地开发市场开发并验证 ZCode 插件：脚手架、清单规范、安装试用与更新全流程。迁移自官方 ZCode 内置插件 plugin-creator 0.1.1（MIT，原作者 Z.ai）。"
+      },
+      "category": "developer-tools"
     }
   ]
 }
