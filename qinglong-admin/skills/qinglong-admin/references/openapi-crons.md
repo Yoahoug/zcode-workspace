@@ -1,0 +1,378 @@
+> 来源：青龙官方文档 https://qinglong.online/（抓取日期 2026-10-01，面板版本 2.20.0-1）。逐字整理，未改写事实。
+
+# 定时任务 API 文档#
+
+## 基础路径#
+
+/crons
+
+## 接口列表#
+
+### 定时任务视图管理#
+
+#### 获取视图列表#
+
+```
+GET /views
+```
+
+获取所有定时任务视图。
+
+#### 创建视图#
+
+```
+POST /views
+```
+
+请求体
+
+```
+{
+ name: string, // 视图名称
+ sorts?: Array<any>, // 排序规则
+ filters?: Array<any>, // 过滤规则
+ filterRelation?: string // 过滤关系
+}
+```
+
+#### 更新视图#
+
+```
+PUT /views
+```
+
+请求体
+
+```
+{
+ id: number, // 视图ID
+ name: string, // 视图名称
+ sorts?: Array<any>, // 排序规则
+ filters?: Array<any>, // 过滤规则
+ filterRelation?: string // 过滤关系
+}
+```
+
+#### 删除视图#
+
+```
+DELETE /views
+```
+
+请求体
+
+```
+number[] // 视图ID数组
+```
+
+#### 移动视图位置#
+
+```
+PUT /views/move
+```
+
+请求体
+
+```
+{
+ fromIndex: number, // 原位置
+ toIndex: number, // 目标位置
+ id: number // 视图ID
+}
+```
+
+#### 禁用视图#
+
+```
+PUT /views/disable
+```
+
+请求体
+
+```
+number[] // 视图ID数组
+```
+
+#### 启用视图#
+
+```
+PUT /views/enable
+```
+
+请求体
+
+```
+number[] // 视图ID数组
+```
+
+### 定时任务管理#
+
+#### 获取定时任务列表#
+
+```
+GET /
+```
+
+获取定时任务列表。
+
+#### 获取任务详情#
+
+```
+GET /detail
+```
+
+获取指定任务的详细信息。
+
+#### 创建定时任务#
+
+```
+POST /
+```
+
+请求体
+
+```
+{
+ command: string, // 执行的命令
+ schedule: string, // cron表达式
+ name?: string, // 任务名称
+ labels?: string[], // 标签
+ sub_id?: number, // 子任务ID
+ extra_schedules?: any[], // 额外的定时规则
+ task_before?: string, // 前置任务
+ task_after?: string // 后置任务
+}
+```
+
+#### 运行任务#
+
+```
+PUT /run
+```
+
+请求体
+
+```
+number[] // 任务ID数组
+```
+
+#### 停止任务#
+
+```
+PUT /stop
+```
+
+请求体
+
+```
+number[] // 任务ID数组
+```
+
+#### 删除标签#
+
+```
+DELETE /labels
+```
+
+请求体
+
+```
+{
+ ids: number[], // 任务ID数组
+ labels: string[] // 标签数组
+}
+```
+
+#### 添加标签#
+
+```
+POST /labels
+```
+
+请求体
+
+```
+{
+ ids: number[], // 任务ID数组
+ labels: string[] // 标签数组
+}
+```
+
+#### 禁用任务#
+
+```
+PUT /disable
+```
+
+请求体
+
+```
+number[] // 任务ID数组
+```
+
+#### 启用任务#
+
+```
+PUT /enable
+```
+
+请求体
+
+```
+number[] // 任务ID数组
+```
+
+#### 获取任务日志#
+
+```
+GET /:id/log
+```
+
+获取指定任务的执行日志。
+
+#### 更新任务#
+
+```
+PUT /
+```
+
+请求体
+
+```
+{
+ id: number, // 任务ID
+ command: string, // 执行的命令
+ schedule: string, // cron表达式
+ name?: string, // 任务名称
+ labels?: string[], // 标签
+ sub_id?: number, // 子任务ID
+ extra_schedules?: any[], // 额外的定时规则
+ task_before?: string, // 前置任务
+ task_after?: string // 后置任务
+}
+```
+
+#### 删除任务#
+
+```
+DELETE /
+```
+
+请求体
+
+```
+number[] // 任务ID数组
+```
+
+#### 置顶任务#
+
+```
+PUT /pin
+```
+
+请求体
+
+```
+number[] // 任务ID数组
+```
+
+#### 取消置顶#
+
+```
+PUT /unpin
+```
+
+请求体
+
+```
+number[] // 任务ID数组
+```
+
+#### 导入定时任务#
+
+```
+GET /import
+```
+
+从 crontab 导入定时任务。
+
+#### 获取单个任务#
+
+```
+GET /:id
+```
+
+获取指定ID的任务信息。
+
+#### 更新任务状态#
+
+```
+PUT /status
+```
+
+请求体
+
+```
+{
+ ids: number[], // 任务ID数组
+ status: string, // 状态
+ pid?: string, // 进程ID
+ log_path?: string, // 日志路径
+ last_running_time?: number, // 最后运行时间
+ last_execution_time?: number // 最后执行时间
+}
+```
+
+#### 获取任务日志列表#
+
+```
+GET /:id/logs
+```
+
+获取指定任务的所有日志记录。
+
+## 错误处理#
+
+所有接口遵循相同的错误处理模式：
+
+- 错误会传递给下一个中间件
+
+- 成功响应返回 { code: 200, data: ... }
+
+- 错误日志由 Winston logger 处理
+
+## 注意事项#
+
+- 所有路由都使用 celebrate/Joi 进行参数验证
+
+- cron 表达式会通过 cron-parser 进行有效性验证
+
+- 批量操作接口（如运行、停止、删除等）都接受任务ID数组
+
+## 执行选项与任务实例#
+
+创建和更新除原有字段外，还支持：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| log_name | string | 自定义日志名，支持中文；相对名称最长 100 字符，不允许 ./.. 路径段；绝对路径须在日志目录内，或使用 /dev/null |
+| allow_multiple_instances | number | 0 或 1，是否允许多实例运行 |
+| work_dir | string | 执行工作目录 |
+
+command 和 schedule 在创建及更新时均必填。定时规则支持秒级设置；步长使用 */5 等合法表达式，不支持裸 /5 和包含 ? 的 Quartz 表达式。
+
+| 方法 | 完整路径 | 说明 |
+|---|---|---|
+| GET | /open/crons/:id/instances | 查询任务实例，按启动时间降序排列 |
+| POST | /open/crons/:id/instances/:instanceId/stop | 停止指定实例 |
+
+```
+ql task instances 12 --json
+ql task instance-stop 12 34 --json
+```
+
+### 日志分块#
+
+GET /open/crons/:id/log 支持 offset（非负字节偏移）、limit（最多 1048576 字节）和 tail（布尔值）。响应除 data 外，包含 logStatus、offset、nextOffset、total、truncated。与 CLI 的 --tail 行数参数不同，HTTP 参数按字节分块。
+
+列表分页及 CLI 运行结果说明见远程 CLI。HTTP 运行接口接受 ID 数组；运行请求返回成功不表示脚本已经执行完成。

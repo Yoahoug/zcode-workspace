@@ -73,6 +73,20 @@
         "zh-CN": "通过本地开发市场开发并验证 ZCode 插件：脚手架、清单规范、安装试用与更新全流程。迁移自官方 ZCode 内置插件 plugin-creator 0.1.1（MIT，原作者 Z.ai）。"
       },
       "category": "developer-tools"
+    },
+    {
+      "name": "qinglong-admin",
+      "source": "./qinglong-admin",
+      "version": "0.1.0",
+      "description": "Administrator skill for a Qinglong (青龙 2.x) scheduled-task panel: the complete remote OpenAPI/CLI surface (143 routes), per-resource field references, operational recipes, pitfalls, and the deployment facts of this host's panel.",
+      "displayName": "Qinglong Admin",
+      "displayName_i18n": {
+        "zh-CN": "青龙面板管理员"
+      },
+      "description_i18n": {
+        "zh-CN": "覆盖青龙 2.x 远程 OpenAPI 全量面（含 143 条 CLI 路由）与面板本机维护：CLI 用法与三种凭据模式、逐资源字段参考、处方集（建任务并验证、批量运行、看日志、导环境变量、装依赖、备份/恢复）与交叉坑清单，并记录本机面板的部署事实（容器 qinglong、http://127.0.0.1:15700、数据目录、compose 工程）。凭据来自面板「系统设置 → 应用设置」创建的应用。"
+      },
+      "category": "utilities"
     }
   ]
 }

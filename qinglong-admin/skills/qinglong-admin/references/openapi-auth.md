@@ -1,0 +1,59 @@
+> 来源：青龙官方文档 https://qinglong.online/（抓取日期 2026-10-01，面板版本 2.20.0-1）。逐字整理，未改写事实。
+
+# OpenAPI 认证与前置步骤
+
+> 基础路径 `/open`，除 `GET /open/auth/token` 外都需要 `Authorization: Bearer <token>`。
+
+### 创建应用
+
+在 系统设置 -> 应用设置中添加应用，选择模块权限，生成 client_id 和 client_secret
+
+## 获取 Token#
+
+GET /open/auth/token
+
+### 查询参数#
+
+| 字段名称 | 字段类型 | 默认值 |
+|---|---|---|
+| client_id | string | - |
+| client_secret | string | - |
+
+该 GET 请求使用查询参数，不需要请求体。
+
+### 响应体参数#
+
+```
+{
+ "code": 200,
+ "data": {
+ "token": "xxxxxx",
+ "token_type": "Bearer",
+ "expiration": 1237889999
+ }
+}
+```
+
+expiration 是 Unix 秒级过期时间戳，不是毫秒或剩余有效秒数。当前实现的有效期为 30 天。每个应用最多保留 5 个有效 token；达到上限后，再次获取会复用并延长第 5 个 token 的有效期。重置应用密钥会清空已有 token。
+
+## 请求接口#
+
+使用上面获取的 token 请求接口，所有模块接口的基础路径为 /open
+
+### 请求示例#
+
+```
+curl 'http://[host]:[port]/open/envs' \
+ -H 'Accept: application/json' \
+ -H 'Authorization: Bearer {token}'
+```
+
+## 使用 CLI#
+
+可使用远程 CLI完成登录和请求，无需自行保存和刷新应用 token：
+
+```
+ql login --url https://ql.example.com
+ql auth status --scope envs --json
+ql env list --json
+```

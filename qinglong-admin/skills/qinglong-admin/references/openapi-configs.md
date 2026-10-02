@@ -1,0 +1,110 @@
+> 来源：青龙官方文档 https://qinglong.online/（抓取日期 2026-10-01，面板版本 2.20.0-1）。逐字整理，未改写事实。
+
+# 配置文件 API 文档#
+
+## 基础路径#
+
+/configs
+
+## 接口列表#
+
+### 获取示例文件列表#
+
+```
+GET /samples
+```
+
+获取系统预设的示例配置文件列表。
+
+响应
+
+```
+{
+ code: 200,
+ data: SAMPLE_FILES // 示例文件列表
+}
+```
+
+### 获取配置文件列表#
+
+```
+GET /files
+```
+
+获取所有可用的配置文件列表。
+
+响应
+
+```
+{
+ code: 200,
+ data: [
+ {
+ title: string, // 文件名称
+ value: string // 文件值
+ }
+ ]
+}
+```
+
+### 获取文件详情#
+
+```
+GET /detail
+```
+
+查询参数
+
+```
+{
+ path: string // 文件路径
+}
+```
+
+获取指定配置文件的内容。
+
+### 保存配置文件#
+
+```
+POST /save
+```
+
+请求体
+
+```
+{
+ name: string, // 文件名
+ content: string // 文件内容
+}
+```
+
+响应
+
+```
+{
+ code: 200,
+ message: "保存成功"
+}
+```
+
+### 已下线接口#
+
+GET /:file 返回业务代码 410。读取配置请使用 GET /open/configs/detail?path=config.sh，或 ql config get --query '{"path":"config.sh"}'。
+
+## 错误处理#
+
+- 所有接口遵循统一的错误处理机制
+
+- 成功响应返回 { code: 200, data: ... }
+
+- 错误日志由 Winston logger 处理
+
+- 访问黑名单文件将返回 403 错误
+
+## 注意事项#
+
+- 使用 celebrate/Joi 进行参数验证
+
+- 文件操作使用 fs/promises 异步处理
+
+- 部分文件路径受黑名单限制无法访问

@@ -1,0 +1,468 @@
+> 来源：青龙官方文档 https://qinglong.online/（抓取日期 2026-10-01，面板版本 2.20.0-1）。逐字整理，未改写事实。
+
+# System API 文档#
+
+## 基础路径#
+
+/system
+
+## 接口列表#
+
+### 系统信息#
+
+```
+GET /
+```
+
+返回系统初始化状态和版本信息。
+
+响应
+
+```
+{
+ code: 200,
+ data: {
+ isInitialized: boolean, // 是否已初始化
+ version: string, // 版本号
+ publishTime: number, // 发布时间(Unix时间戳)
+ branch: string, // 分支
+ changeLog: string, // 更新日志
+ changeLogLink: string // 更新日志链接
+ }
+}
+```
+
+### 系统配置#
+
+#### 获取配置#
+
+```
+GET /config
+```
+
+获取系统配置信息。
+
+#### 更新日志清理频率#
+
+```
+PUT /config/log-remove-frequency
+```
+
+请求体
+
+```
+{
+ logRemoveFrequency: number | null // 日志清理频率
+}
+```
+
+#### 更新定时任务并发数#
+
+```
+PUT /config/cron-concurrency
+```
+
+请求体
+
+```
+{
+ cronConcurrency: number | null // 定时任务并发数
+}
+```
+
+#### 更新依赖代理#
+
+```
+PUT /config/dependence-proxy
+```
+
+请求体
+
+```
+{
+ dependenceProxy: string | null // 依赖代理地址
+}
+```
+
+#### 更新 Node 镜像#
+
+```
+PUT /config/node-mirror
+```
+
+请求体
+
+```
+{
+ nodeMirror: string | null // Node镜像地址
+}
+```
+
+#### 更新 Python 镜像#
+
+```
+PUT /config/python-mirror
+```
+
+请求体
+
+```
+{
+ pythonMirror: string | null // Python镜像地址
+}
+```
+
+#### 更新 Linux 镜像#
+
+```
+PUT /config/linux-mirror
+```
+
+请求体
+
+```
+{
+ linuxMirror: string | null // Linux镜像地址
+}
+```
+
+### 系统操作#
+
+#### 检查更新#
+
+```
+PUT /update-check
+```
+
+检查系统更新。
+
+#### 更新系统#
+
+```
+PUT /update
+```
+
+执行系统更新。
+
+#### 重载系统#
+
+```
+PUT /reload
+```
+
+请求体
+
+```
+{
+ type?: string | null // 重载类型
+}
+```
+
+#### 发送通知#
+
+```
+PUT /notify
+```
+
+请求体
+
+```
+{
+ title: string, // 通知标题（必填）
+ content: string, // 通知内容（必填）
+ notificationInfo?: { // 可选通知配置（不填则使用系统默认配置）
+ type: NotificationMode, // 通知方式类型（枚举值，见下文说明）
+ 
+ // Gotify 通知（type=gotify）
+ gotifyUrl?: string, // Gotify 服务地址（如：http://localhost:8080）
+ gotifyToken?: string, // Gotify 应用令牌（必填）
+ gotifyPriority?: number, // 消息优先级（0-10，默认5）
+ 
+ // Go-CQHttp QQ 机器人（type=goCqHttpBot）
+ goCqHttpBotUrl?: string, // Go-CQHttp 服务地址（如：http://localhost:5700）
+ goCqHttpBotToken?: string, // 访问令牌（配置的 access_token）
+ goCqHttpBotQq?: string, // 目标 QQ 号（群号或好友QQ）
+ 
+ // Server 酱（type=serverChan）
+ serverChanKey?: string, // Server 酱密钥（SC开头的字符串）
+ 
+ // PushDeer（type=pushDeer）
+ pushDeerKey?: string, // PushDeer 密钥（pd开头的字符串）
+ pushDeerUrl?: string, // 自建 PushDeer 服务地址（默认：https://api2.pushdeer.com）
+ 
+ // Bark（type=bark）
+ barkPush?: string, // Bark 设备标识（如：abc123）
+ barkIcon?: string, // 消息图标 URL（可选，默认系统图标）
+ barkSound?: string, // 提示音（如：alert，可选）
+ barkGroup?: string, // 消息分组（可选）
+ barkLevel?: string, // 消息级别（active/timeSensitive/passive）
+ barkUrl?: string, // 自建 Bark 服务地址（默认：https://api.day.app）
+ barkArchive?: string, // 是否存档（true/false，默认false）
+ 
+ // Telegram 机器人（type=telegramBot）
+ telegramBotToken?: string, // Telegram Bot 令牌（botXXX:XXX 格式）
+ telegramBotUserId?: string, // 目标用户 ID（数字形式）
+ telegramBotProxyHost?: string, // 代理主机（如需要）
+ telegramBotProxyPort?: string, // 代理端口（如需要）
+ telegramBotProxyAuth?: string, // 代理认证信息（user:pass）
+ telegramBotApiHost?: string, // 自定义 API 地址（默认：api.telegram.org）
+ 
+ // 钉钉机器人（type=dingtalkBot）
+ dingtalkBotToken?: string, // 钉钉机器人令牌（webhook 中的 access_token）
+ dingtalkBotSecret?: string, // 加签密钥（启用加签时必填）
+ 
+ // 企业微信机器人（type=weWorkBot）
+ weWorkBotKey?: string, // 企业微信机器人 Webhook 密钥（key=XXX）
+ weWorkOrigin?: string, // 企业微信服务器地址（默认：https://qyapi.weixin.qq.com）
+ 
+ // 企业微信应用（type=weWorkApp）
+ weWorkAppKey?: string, // 企业微信应用凭证（如：corpid+corpsecret 组合）
+ 
+ // Aibotk（type=aibotk）
+ aibotkKey?: string, // Aibotk 密钥
+ aibotkType?: string, // 机器人类型（如：wechat）
+ aibotkName?: string, // 机器人名称
+ 
+ // iGot（type=iGot）
+ iGotPushKey?: string, // iGot 推送密钥（igot-XXX 格式）
+ 
+ // PushPlus（type=pushPlus）
+ pushPlusToken?: string, // PushPlus 令牌（必填）
+ pushPlusUser?: string, // 目标用户 ID（默认当前用户）
+ pushPlusTemplate?: string, // 消息模板（如：html/json）
+ pushplusChannel?: string, // 推送渠道（如：wechat/email）
+ pushplusWebhook?: string, // 自定义 Webhook 地址
+ pushplusCallbackUrl?: string, // 回调地址
+ pushplusTo?: string, // 目标用户（多个用逗号分隔）
+ 
+ // WePlus 机器人（type=wePlusBot）
+ wePlusBotToken?: string, // WePlus 机器人令牌
+ wePlusBotReceiver?: string, // 接收者 ID
+ wePlusBotVersion?: string, // 接口版本（如：v1）
+ 
+ // 邮件通知（type=email）
+ emailService?: string, // 邮件服务（如：QQ/163/Gmail）
+ emailUser?: string, // 发件人邮箱（如：user@example.com）
+ emailPass?: string, // 邮箱授权码（非登录密码）
+ emailTo?: string, // 收件人邮箱（多个用逗号分隔）
+ 
+ // PushMe（type=pushMe）
+ pushMeKey?: string, // PushMe 密钥
+ pushMeUrl?: string, // 自建 PushMe 服务地址
+ 
+ // 飞书（type=feishu）
+ larkKey?: string, // 飞书机器人 Webhook 密钥（需要去飞书后台配置）
+ 
+ // Webhook（type=webhook）
+ webhookHeaders?: string, // 请求头（JSON 格式字符串）
+ webhookBody?: string, // 请求体内容（支持模板变量）
+ webhookUrl?: string, // Webhook 地址（必填）
+ webhookMethod?: string, // 请求方法（GET/POST/PUT 等，默认POST）
+ webhookContentType?: string, // 内容类型（如：application/json）
+ 
+ // Chronocat（type=Chronocat）
+ chronocatURL?: string, // Chronocat 服务地址（如：http://localhost:10086）
+ chronocatQQ?: string, // 目标 QQ 号
+ chronocatToken?: string, // 访问令牌
+ 
+ // Ntfy（type=ntfy）
+ ntfyUrl?: string, // Ntfy 服务地址（默认：https://ntfy.sh）
+ ntfyTopic?: string, // 主题名称（必填）
+ ntfyPriority?: string, // 优先级（low/default/high/urgent）
+ ntfyToken?: string, // 认证令牌（如需要）
+ ntfyUsername?: string, // 用户名（如需要）
+ ntfyPassword?: string, // 密码（如需要）
+ ntfyActions?: string, // 操作按钮（JSON 格式）
+ 
+ // 微信推送机器人（type=wxPusherBot）
+ wxPusherBotAppToken?: string, // 微信推送应用 Token（必填）
+ wxPusherBotTopicIds?: string, // 主题 ID（多个用逗号分隔）
+ wxPusherBotUids?: string, // 用户 UID（多个用逗号分隔）
+
+ // OpeniLink / WPush
+ openiLinkAppToken?: string,
+ openiLinkHubUrl?: string,
+ openiLinkContextToken?: string,
+ wpushApiKey?: string,
+ wpushChannel?: string,
+ wpushTopicCode?: string,
+ }
+}
+```
+
+```
+enum NotificationMode {
+ 'gotify' = 'gotify',
+ 'goCqHttpBot' = 'goCqHttpBot',
+ 'serverChan' = 'serverChan',
+ 'pushDeer' = 'pushDeer',
+ 'bark' = 'bark',
+ 'chat' = 'chat',
+ 'telegramBot' = 'telegramBot',
+ 'dingtalkBot' = 'dingtalkBot',
+ 'weWorkBot' = 'weWorkBot',
+ 'weWorkApp' = 'weWorkApp',
+ 'aibotk' = 'aibotk',
+ 'iGot' = 'iGot',
+ 'pushPlus' = 'pushPlus',
+ 'wePlusBot' = 'wePlusBot',
+ 'email' = 'email',
+ 'pushMe' = 'pushMe',
+ 'feishu' = 'feishu',
+ 'webhook' = 'webhook',
+ 'chronocat' = 'Chronocat',
+ 'ntfy' = 'ntfy',
+ 'wxPusherBot' = 'wxPusherBot',
+ openiLink = 'openiLink',
+ wpush = 'wpush',
+}
+```
+
+HTTP 通知枚举依据 back/data/notify.ts。它与脚本内置 gRPC API 的枚举不同，请勿混用；例如 HTTP 的 Chronocat 值为 Chronocat。
+
+### 命令管理#
+
+#### 运行命令#
+
+```
+PUT /command-run
+```
+
+请求体
+
+```
+{
+ command: string // 要执行的命令
+}
+```
+
+响应头
+
+- Content-type: application/octet-stream
+
+- QL-Task-Pid: <进程ID>
+
+- QL-Task-Log: <日志相对路径>
+
+响应体为持续输出的命令日志，任务结束时关闭流，不是 JSON 响应。
+
+#### 停止命令#
+
+```
+PUT /command-stop
+```
+
+请求体
+
+```
+{
+ command?: string, // 要停止的命令
+ pid?: number // 进程ID
+}
+```
+
+### 数据管理#
+
+#### 导出数据#
+
+```
+PUT /data/export
+```
+
+响应为压缩备份文件下载。可传入 JSON 请求体 {"type":["scripts","config","log"]} 追加这些数据目录。省略 type 或传空数组时，只导出 db 和 upload，不包含脚本、配置及日志；base 表示基础数据，不是额外目录。完整备份方式见维护指南。
+
+#### 导入数据#
+
+```
+PUT /data/import
+```
+
+请求
+
+- Content-Type: multipart/form-data
+
+- 字段: data (文件)
+
+上传导出的 data.tgz 后，此接口只将备份解压到临时目录。确认导入成功后，调用 PUT /open/system/reload，请求体 {"type":"data"}，才会替换当前数据并重启服务。替换操作会清空现有数据目录，备份中未包含的目录不会保留；应用前应先备份当前数据。
+
+### 日志管理#
+
+#### 获取系统日志#
+
+```
+GET /log
+```
+
+查询参数
+
+```
+{
+ startTime?: string, // 开始时间
+ endTime?: string, // 结束时间
+ limit?: number, // 最大读取字节数，整数 1–1048576，默认 1048576
+ t?: string // 可选附加参数，不参与日志筛选
+}
+```
+
+系统日志按日志文件创建日期筛选，起止时间分别扩展到当天开始和结束，省略时默认当天。响应体为原始日志文本，超出 limit 时保留所选日志末尾内容。响应头 X-QL-Log-Total 表示筛选日志的总字节数，X-QL-Log-Truncated 表示是否截断，Content-Length 为本次返回的字节数。此接口不使用普通日志 API 的 offset/nextOffset 分页结构。
+
+#### 删除系统日志#
+
+```
+DELETE /log
+```
+
+删除系统日志。
+
+## 错误处理#
+
+所有接口遵循相同的错误处理模式：
+
+- 错误会传递给下一个中间件
+
+- 大多数成功响应返回 { code: 200, data: ... }
+
+- 错误日志由 Winston logger 处理
+
+## 注意事项#
+
+- 所有路由都使用 celebrate/Joi 进行参数验证
+
+- 文件操作使用异步 fs promises
+
+- 临时文件存储在配置的临时路径中
+
+- 日志文件包含时间戳格式：YYYY-MM-DD-HH-mm-ss-SSS
+
+## 客户端 IP 与代理#
+
+| 方法 | 完整路径 | 说明 |
+|---|---|---|
+| GET | /open/system/client-ip/config | 查询代理信任配置 |
+| PUT | /open/system/client-ip/config | 更新配置，请求体为 { "trustProxy": "..." }，字符串最长 500 字符 |
+| GET | /open/system/client-ip/diagnose | 查看当前请求的客户端 IP 解析结果 |
+
+```
+ql system client-ip-get --json
+ql system client-ip-diagnose --json
+```
+
+## 数据保留与清理#
+
+基础路径 /open/system/storage-retention：PUT /config 保存保留策略，POST /preview 预览清理范围，POST /cleanup 执行清理。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| runningInstanceRetentionDays | number | 必填，运行实例保留天数，整数 0–3650 |
+| cronStatRetentionDays | number | 必填，任务统计保留天数，整数 0–3650 |
+| dependenceCacheTypes | string[] | 预览/清理可选，node、python3，默认空数组 |
+| compactDatabase | boolean | 预览/清理可选，默认 false |
+| confirmation | string | 仅执行清理时必填，必须为 CLEAN |
+
+先预览所选策略的影响，再按需要提交清理。以下命令只预览：
+
+```
+ql system retention-preview --data '{"runningInstanceRetentionDays":30,"cronStatRetentionDays":90,"dependenceCacheTypes":[],"compactDatabase":false}' --json
+```
+
+其余系统接口与 CLI 命令对应关系见路由参考。

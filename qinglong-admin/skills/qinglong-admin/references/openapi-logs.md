@@ -1,0 +1,44 @@
+> 来源：青龙官方文档 https://qinglong.online/（抓取日期 2026-10-01，面板版本 2.20.0-1）。逐字整理，未改写事实。
+
+# 日志 API#
+
+基础路径：/open/logs。需要 logs 权限。
+
+| 方法 | 路径 | 用途 |
+|---|---|---|
+| GET | / | 日志目录列表 |
+| GET | /detail | 分块读取日志 |
+| DELETE | / | 删除日志文件或目录 |
+| POST | /download | 下载日志文件 |
+
+## 读取日志#
+
+GET /open/logs/detail 的查询参数：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| file | string | 必填，文件名 |
+| path | string | 可选，相对日志目录路径 |
+| offset | number | 可选，非负整数，字节偏移 |
+| limit | number | 可选，正整数，最多 1048576 字节；默认 262144 |
+| tail | boolean | 可选，为 true 时读取文件尾部；未提供 offset 时也默认读取尾部 |
+
+响应包含日志文本 data、字节位置 offset/nextOffset、总字节数 total 和是否截断 truncated。有运行中的实例时附带 logStatus: "running"。继续读取时使用 nextOffset，不要按文本字符数计算偏移。
+
+```
+ql log get --query '{"path":"demo","file":"example.log","offset":0,"limit":262144}' --json
+```
+
+## 删除与下载#
+
+两个接口的请求体均使用 filename（不是查询参数的 file）和 path；删除还支持可选 type。路径必须位于面板日志目录内，受限路径返回业务代码 403。
+
+```
+{"filename":"example.log","path":"demo"}
+```
+
+```
+ql log download --data '{"filename":"example.log","path":"demo"}' --output ./example.log --json
+```
+
+下载返回文件流。旧接口 GET /open/logs/:file 已下线，返回业务代码 410，请改用 /detail。

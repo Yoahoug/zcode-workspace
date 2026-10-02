@@ -1,0 +1,178 @@
+> 来源：青龙官方文档 https://qinglong.online/（抓取日期 2026-10-01，面板版本 2.20.0-1）。逐字整理，未改写事实。
+
+# 订阅管理 API 文档#
+
+## 基础路径#
+
+/subscriptions
+
+## 接口列表#
+
+### 获取订阅列表#
+
+```
+GET /
+```
+
+查询参数
+
+```
+{
+ searchValue?: string, // 搜索关键词
+ ids?: string // JSON 编码的 ID 数组，例如 "[1,2]"
+}
+```
+
+### 创建订阅#
+
+```
+POST /
+```
+
+请求体
+
+```
+{
+ type: string, // 订阅类型
+ schedule?: string, // 定时计划
+ interval_schedule?: { // 间隔计划
+ type: string,
+ value: number
+ },
+ name?: string, // 名称
+ url: string, // 订阅地址
+ whitelist?: string, // 白名单
+ blacklist?: string, // 黑名单
+ branch?: string, // 分支
+ dependences?: string, // 依赖
+ pull_type?: string, // 拉取类型
+ pull_option?: object, // 拉取选项
+ extensions?: string, // 扩展
+ sub_before?: string, // 执行前脚本
+ sub_after?: string, // 执行后脚本
+ schedule_type: string, // 计划类型
+ alias: string, // 别名
+ proxy?: string, // 代理
+ autoAddCron?: boolean, // 自动添加定时任务
+ autoDelCron?: boolean // 自动删除定时任务
+}
+```
+
+### 更新订阅#
+
+```
+PUT /
+```
+
+请求体必填 id: number、type: string、url: string、alias: string；其余字段参考创建订阅，更新时 schedule_type 可选。创建时 interval_schedule.value 必须大于等于 1。
+
+### 删除订阅#
+
+```
+DELETE /
+```
+
+请求体为订阅 ID 数组，例如 [1, 2]。可选查询参数 force=true 会同时删除关联的定时任务、脚本目录和仓库目录；省略时仅删除订阅。
+
+### 获取订阅详情#
+
+```
+GET /:id
+```
+
+id 为数字订阅 ID，响应 data 为订阅对象。
+
+### 运行订阅#
+
+```
+PUT /run
+```
+
+请求体
+
+```
+number[] // 订阅ID数组
+```
+
+### 停止订阅#
+
+```
+PUT /stop
+```
+
+请求体
+
+```
+number[] // 订阅ID数组
+```
+
+### 禁用订阅#
+
+```
+PUT /disable
+```
+
+请求体
+
+```
+number[] // 订阅ID数组
+```
+
+### 启用订阅#
+
+```
+PUT /enable
+```
+
+请求体
+
+```
+number[] // 订阅ID数组
+```
+
+### 获取订阅日志#
+
+```
+GET /:id/log
+```
+
+查询参数支持 offset（非负整数字节偏移）、limit（1–1048576 字节）和 tail（布尔值）。响应 data 是日志文本，同时返回 offset、nextOffset、total、truncated；继续读取时使用 nextOffset，不要用字符数计算偏移。详见日志 API。
+
+### 更新订阅状态#
+
+```
+PUT /status
+```
+
+请求体
+
+```
+{
+ ids: number[], // 订阅ID数组
+ status: string, // 状态
+ pid?: string, // 进程ID
+ log_path?: string // 日志路径
+}
+```
+
+### 获取订阅日志列表#
+
+```
+GET /:id/logs
+```
+
+## 错误处理#
+
+- 所有接口遵循统一的错误处理机制
+
+- 成功响应返回 { code: 200, data: ... }
+
+- 错误日志由 Winston logger 处理
+
+## 注意事项#
+
+- 使用 celebrate/Joi 进行参数验证
+
+- cron 表达式会通过 cron-parser 进行有效性验证
+
+- 支持批量操作（运行、停止、启用、禁用等）

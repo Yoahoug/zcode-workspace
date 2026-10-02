@@ -1,0 +1,8 @@
+{
+  "name": "qinglong-admin",
+  "version": "0.1.0",
+  "description": "Administrator skill for a Qinglong (青龙 2.x) scheduled-task panel: the complete remote OpenAPI/CLI surface (143 routes), per-resource field references, operational recipes, pitfalls, and the deployment facts of this host's panel.",
+  "author": { "name": "Cindy (local)" },
+  "license": "MIT",
+  "skills": "skills"
+}
