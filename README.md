@@ -1,6 +1,6 @@
 # zcode-workspace
 
-插件仓库，目前包含六个插件：
+插件仓库，目前包含五个插件：
 
 | 插件 | 说明 |
 |---|---|
@@ -9,7 +9,6 @@
 | [`zcode-guide`](zcode-guide/README.md) | ZCode 使用与自诊断指南：MCP、命令、技能、Hooks、插件五类扩展资源的配置方法与逐一排障。迁移自官方内置插件 0.3.0 |
 | [`skill-creator`](skill-creator/) | 创建、编辑与迭代本地 ZCode 技能。迁移自官方内置插件 0.1.0 |
 | [`plugin-creator`](plugin-creator/) | 通过本地开发市场开发并验证 ZCode 插件：脚手架、清单规范、安装试用与更新。迁移自官方内置插件 0.1.1 |
-| [`qinglong-admin`](qinglong-admin/README.md) | 管理青龙（Qinglong 2.x）定时任务面板：零依赖 CLI + MCP 服务覆盖全部 143 条已收录路由（任务/订阅/环境变量/脚本/配置/日志/依赖/系统/仪表盘/应用/用户），附字段级参考、运维处方集与交叉坑清单 |
 
 ## 迁移自官方的插件
 
@@ -52,18 +51,6 @@ zcode-guide/                           迁移自官方内置插件（纯技能�
   skills/                              配置指南 + 五类资源排障技能
 skill-creator/                         迁移自官方内置插件（纯技能包）
 plugin-creator/                        迁移自官方内置插件（技能 + 脚手架脚本）
-qinglong-admin/                        青龙面板管理（CLI + MCP + 技能，迁移自 Codex 格式后完整开发）
-  .zcode-plugin/plugin.json            插件清单：名称、版本、MCP 服务器、可配置项
-  .mcp.json                            MCP 服务器声明（与上者内容一致）
-  server/index.mjs                     MCP stdio 服务，22 个工具
-  scripts/qinglong-admin.mjs           零依赖 CLI，与 MCP 服务共用同一套请求核心
-  lib/core.mjs                         共享核心：配置解析、双模认证（token / 客户端凭证）、信封判定
-  lib/routes.mjs                       143 条已收录路由的索引（+2 条未收录扩展）
-  skills/qinglong-admin/SKILL.md       主技能：工具选择顺序、凭据与安全规则、判据
-  skills/qinglong-admin/references/    16 篇参考：CLI、路由全表、逐资源 OpenAPI、处方集、坑清单
-  test/                                3 套检查（80 + 61 + 120 项）与契约 mock 服务
-  scripts/verify.sh                    只读自检（不打印凭据）
-  README.md                            安装、配置、MCP 工具表、CLI 用法、安全边界
 ```
 
 ## 本仓库的特别之处
@@ -89,23 +76,21 @@ qinglong-admin/                        青龙面板管理（CLI + MCP + 技能�
 - **本地目录**：克隆本仓库后，选择**仓库根目录**
 
 添加后市场名为 `zcode-workspace`，插件有 `zcode-websearch`、`newapi-admin`、`zcode-guide`、
-`skill-creator`、`plugin-creator`、`qinglong-admin` 六个。
+`skill-creator`、`plugin-creator` 五个。
 配置 API Key / 访问令牌、更新到新版本、以及各种报错的排查见各插件自己的 README：
 
 - [`zcode-websearch/README.md`](zcode-websearch/README.md)
 - [`newapi-admin/README.md`](newapi-admin/README.md)
-- [`qinglong-admin/README.md`](qinglong-admin/README.md)
 
 ## 验证
 
-三套验证都不需要真实凭据（websearch 用本地 stub 顶替 `api.tavily.com`，newapi-admin 与 qinglong-admin 用复刻上游契约的 mock 服务）：
+两套验证都不需要真实凭据（websearch 用本地 stub 顶替 `api.tavily.com`，newapi-admin 用复刻上游
+契约的 mock 服务）：
 
 ```bash
 node zcode-websearch/test/verify-server.mjs
 
 cd newapi-admin && npm test
-
-cd qinglong-admin && npm test
 ```
 
 ## 加一个新插件
