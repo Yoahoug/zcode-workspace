@@ -1,8 +1,49 @@
 {
   "name": "qinglong-admin",
-  "version": "0.1.0",
-  "description": "Administrator skill for a Qinglong (青龙 2.x) scheduled-task panel: the complete remote OpenAPI/CLI surface (143 routes), per-resource field references, operational recipes, pitfalls, and the deployment facts of this host's panel.",
+  "version": "0.2.0",
+  "description": "Full-surface administrator tooling for a Qinglong (青龙 2.x) scheduled-task panel: tasks, subscriptions, environment variables, scripts, configuration files, logs, dependencies, system settings, dashboard, applications and users. Ships a zero-dependency CLI plus an MCP server that reaches every documented route (143), with the panel's field-level references and operational pitfalls distilled into a bundled skill.",
   "author": { "name": "Cindy (local)" },
   "license": "MIT",
-  "skills": "skills"
+  "skills": "skills",
+  "mcpServers": {
+    "qinglong-admin": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/index.mjs"],
+      "env": {
+        "QL_URL": "${user_config.panel_url}",
+        "QL_ACCESS_TOKEN": "${user_config.access_token}",
+        "QL_CLIENT_ID": "${user_config.client_id}",
+        "QL_CLIENT_SECRET": "${user_config.client_secret}",
+        "QL_TIMEOUT_MS": "${user_config.timeout_ms}"
+      },
+      "timeoutMs": 60000
+    }
+  },
+  "userConfig": {
+    "panel_url": {
+      "type": "string",
+      "default": "",
+      "description": "Panel root URL, e.g. http://127.0.0.1:15700 or https://ql.example.com. Do not append /open. It must be reachable from the machine running the plugin. Also settable via the QL_URL environment variable."
+    },
+    "access_token": {
+      "type": "string",
+      "default": "",
+      "description": "Optional application or session token (Bearer). Tokens live 30 days and are not auto-refreshed in this mode. Leave empty to use client_id + client_secret instead, which the plugin exchanges for a token on demand and refreshes on 401. Also settable via QL_ACCESS_TOKEN."
+    },
+    "client_id": {
+      "type": "string",
+      "default": "",
+      "description": "Application client_id from 面板 系统设置 → 应用设置. Used only when access_token is empty. Also settable via QL_CLIENT_ID."
+    },
+    "client_secret": {
+      "type": "string",
+      "default": "",
+      "description": "Application client_secret. Treated as a secret: stored in the plugin settings, never printed. Also settable via QL_CLIENT_SECRET. Grant the scopes you need (crons, envs, subscriptions, scripts, configs, logs, dependencies, system, dashboard, apps, user)."
+    },
+    "timeout_ms": {
+      "type": "string",
+      "default": "30000",
+      "description": "Per-request timeout in milliseconds. Raise it for slow panels or long-running reads."
+    }
+  }
 }

@@ -28,8 +28,9 @@ description: 管理青龙（Qinglong 2.x）定时任务面板：定时任务、�
 
 ## 工具选择顺序（先合适，再强大）
 
-1. **远程 CLI `ql`（首选）** —— 覆盖 143 条路由，`--json` 输出，凭据与 token 自动管理。用法见 [cli.md](references/cli.md)。
-2. **直接打 HTTP OpenAPI（`curl`）** —— 只在 CLI 没收录时用，例如 `GET /open/dashboard/successes|failures`；或需要手工控制头部/流式下载时。见 [openapi-*.md](references/routes.md)。
+0. **本插件自带的 MCP 工具 / `qinglong-admin` CLI（装了本插件时首选）** —— MCP 的 `qinglong_request` 覆盖全部 143 条路由，另有任务/环境变量/订阅/依赖/日志/仪表盘的类型化工具（把整体提交、accepted≠success、字节偏移、数字/枚举这些坑做进了参数）；CLI 同名命令可直接在终端跑，`--dry-run` 先看请求、`--yes` 确认破坏性操作。与官方 `ql` 共用同一套 `QL_URL` / `QL_ACCESS_TOKEN` / `QL_CLIENT_ID` / `QL_CLIENT_SECRET` 环境变量。工具与命令见插件 README。
+1. **远程 CLI `ql`（首选，当本插件不可用时）** —— 覆盖 143 条路由，`--json` 输出，凭据与 token 自动管理。用法见 [cli.md](references/cli.md)。
+2. **直接打 HTTP OpenAPI（`curl`）** —— 只在两者都没收录时用，例如 `GET /open/dashboard/successes|failures`；或需要手工控制头部/流式下载时。见 [openapi-*.md](references/routes.md)。
 3. **面板内部命令（`docker exec qinglong …`）** —— `task`、`ql repo/raw/update/check/rmlog/resetpwd` 这类**本机**能力，远程 API 不提供。仅在本机维护、仓库拉取、脚本本机执行时使用，见 [panel-this-box.md](references/panel-this-box.md)。
 
 **不要**因为 API 失败就退化成"直接在容器里改文件"：先判断是权限（应用 scope 不够）、凭据（401）、还是路径/版本问题，再决定。
@@ -91,3 +92,5 @@ description: 管理青龙（Qinglong 2.x）定时任务面板：定时任务、�
 | [panel-this-box.md](references/panel-this-box.md) | 本机部署事实、面板内部命令（`task`/`ql`）、备份/升级/恢复流程、常见问题矩阵 |
 
 **上游权威附录**（CLI 自带，可与本技能相互印证）：`/data/npm/global/lib/node_modules/@whyour/qinglong-cli/skills/qinglong-cli/`（`SKILL.md` + `references/panel.md` + `references/openapi.md`）。CLI 版本升级后以 `ql api routes --json` 与各命令 `--help` 为准。
+
+> 装了本插件时，以上参考文档可用 MCP 工具 `qinglong_reference` 直接读取（主题名：`cli`、`routes`、`workflows`、`pitfalls`、`panel-this-box`、`auth`、`crons`、`subscriptions`、`envs`、`scripts`、`configs`、`logs`、`dependencies`、`system`、`dashboard`、`apps-users`），无需手工打开文件。

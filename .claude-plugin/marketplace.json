@@ -77,14 +77,14 @@
     {
       "name": "qinglong-admin",
       "source": "./qinglong-admin",
-      "version": "0.1.0",
-      "description": "Administrator skill for a Qinglong (青龙 2.x) scheduled-task panel: the complete remote OpenAPI/CLI surface (143 routes), per-resource field references, operational recipes, pitfalls, and the deployment facts of this host's panel.",
+      "version": "0.2.0",
+      "description": "Full-surface administrator tooling for a Qinglong (青龙 2.x) scheduled-task panel: tasks, subscriptions, environment variables, scripts, configuration files, logs, dependencies, system settings, dashboard, applications and users. Ships a zero-dependency CLI plus an MCP server that reaches every documented route (143), with the panel's field-level references and operational pitfalls distilled into a bundled skill.",
       "displayName": "Qinglong Admin",
       "displayName_i18n": {
         "zh-CN": "青龙面板管理员"
       },
       "description_i18n": {
-        "zh-CN": "覆盖青龙 2.x 远程 OpenAPI 全量面（含 143 条 CLI 路由）与面板本机维护：CLI 用法与三种凭据模式、逐资源字段参考、处方集（建任务并验证、批量运行、看日志、导环境变量、装依赖、备份/恢复）与交叉坑清单，并记录本机面板的部署事实（容器 qinglong、http://127.0.0.1:15700、数据目录、compose 工程）。凭据来自面板「系统设置 → 应用设置」创建的应用。"
+        "zh-CN": "对青龙（Qinglong 2.x）定时任务面板做完整管理员运维：定时任务、订阅、环境变量、脚本、配置文件、日志、依赖、系统设置、仪表盘、应用与用户。附带零依赖 CLI 与 MCP 服务，覆盖全部 143 条已收录路由，并内置从面板文档与实测沉淀的技能（字段级参考、处方集、交叉坑清单、本机部署事实）。"
       },
       "category": "utilities"
     }
