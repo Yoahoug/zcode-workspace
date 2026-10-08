@@ -5,6 +5,20 @@
   },
   "plugins": [
     {
+      "name": "quark-drive",
+      "source": "./quark-drive",
+      "version": "0.2.0",
+      "description": "Seamlessly upload large files (too big for GitHub) to Quark Drive through the official Quark agent CLI for multi-device sync. The agent decides when to upload on its own (>=50MB artifacts, sync/backup intent, .quark-manifest entries); files land in one standardized cloud folder (来自ZCode/), and real repos leave AGENTS-quark.md hints plus a declarative .quark-manifest so any device can re-login and restore missing resources with a single restore command. Auto-installs the official CLI on first use (OAuth login per device), with a local ledger plus cloud search for retrieval.",
+      "displayName": "Quark Drive",
+      "displayName_i18n": {
+        "zh-CN": "夸克网盘大文件同步"
+      },
+      "description_i18n": {
+        "zh-CN": "把 GitHub 放不下的大文件无感上传到夸克网盘做多端同步：AI 按策略自行判断是否上传（≥50MB 产出、同步/备份意图、.quark-manifest 清单命中），文件统一规范放置在云端「来自ZCode/」目录树下；真实仓库通过 AGENTS-quark.md 留痕（提示安装插件、登录夸克）与声明式 .quark-manifest 清单，任何一端一条 restore 命令即可补齐缺失资源。基于夸克官方 Agent CLI（首次调用自动安装，OAuth 登录），本机台账加云端检索双途径找回。"
+      },
+      "category": "utilities"
+    },
+    {
       "name": "zcode-websearch",
       "source": "./zcode-websearch",
       "version": "0.2.0",

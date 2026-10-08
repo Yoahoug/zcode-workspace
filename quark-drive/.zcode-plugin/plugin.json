@@ -1,0 +1,9 @@
+{
+  "name": "quark-drive",
+  "version": "0.2.0",
+  "description": "Seamlessly upload large files (too big for GitHub) to Quark Drive through the official Quark agent CLI for multi-device sync. The agent decides when to upload on its own (>=50MB artifacts, sync/backup intent, .quark-manifest entries); files land in one standardized cloud folder (来自ZCode/) and real repos leave AGENTS-quark.md hints plus a declarative .quark-manifest so any device can re-login and restore missing resources with a single restore command. Auto-installs the official CLI on first use (OAuth login per device), with a local ledger plus cloud search for retrieval.",
+  "author": { "name": "Yoahoug" },
+  "license": "Apache-2.0",
+  "skills": "skills",
+  "userConfig": {}
+}
